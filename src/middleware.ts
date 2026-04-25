@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
 
 const PUBLIC = ["/login", "/campo", "/manifest.json", "/icons"];
-const REFRESH_AFTER_MS = 12 * 60 * 60 * 1000; // 12 horas
-const SESSION_MAX_AGE = 60 * 60 * 24; // 1 dia em segundos
+const REFRESH_AFTER_MS = 11 * 60 * 60 * 1000; // 11 horas (antes do cookie de 25h expirar)
+const SESSION_MAX_AGE = 60 * 60 * 25; // 25 horas (1h buffer alem do token de 1d)
 
 function secret() {
   const s = process.env.AUTH_SECRET;

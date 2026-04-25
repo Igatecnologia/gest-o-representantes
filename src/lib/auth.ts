@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { redirect } from "next/navigation";
 import { db, schema } from "./db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const COOKIE = "session";
 const ALG = "HS256";
@@ -84,7 +84,10 @@ export async function getCurrentRep(session: SessionPayload) {
   const [rep] = await db
     .select()
     .from(schema.representatives)
-    .where(eq(schema.representatives.userId, session.sub))
+    .where(and(
+      eq(schema.representatives.userId, session.sub),
+      eq(schema.representatives.active, true)
+    ))
     .limit(1);
   return rep ?? null;
 }

@@ -35,7 +35,10 @@ export default async function NovaPropostaPage() {
         description="Crie uma proposta comercial para o cliente"
         icon={FileText}
       />
-      <ProposalForm customers={customers} products={products} />
+      <ProposalForm
+        customers={customers}
+        products={products}
+      />
     </>
   );
 }

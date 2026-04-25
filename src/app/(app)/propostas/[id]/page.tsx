@@ -16,7 +16,7 @@ import {
   TR,
   TD,
 } from "@/components/ui";
-import { updateProposalStatusAction } from "@/lib/actions/proposals";
+import { updateProposalStatusAction, duplicateProposalAction } from "@/lib/actions/proposals";
 import {
   FileText,
   ArrowLeft,
@@ -25,6 +25,8 @@ import {
   XCircle,
   Clock,
   Download,
+  Pencil,
+  Copy,
 } from "lucide-react";
 import { PdfButton } from "./pdf-button";
 
@@ -105,12 +107,22 @@ export default async function ProposalDetailPage({
         description={`Sistema: ${proposal.productName} · Criada em ${dateShort(proposal.createdAt)}`}
         icon={FileText}
         actions={
-          <Link href="/propostas">
-            <Button variant="secondary" size="sm">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {isDraft && (
+              <Link href={`/propostas/${proposal.id}/editar`}>
+                <Button variant="secondary" size="sm">
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+              </Link>
+            )}
+            <Link href="/propostas">
+              <Button variant="secondary" size="sm">
+                <ArrowLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+            </Link>
+          </div>
         }
       />
 
@@ -256,6 +268,14 @@ export default async function ProposalDetailPage({
                   </form>
                 </div>
               )}
+              {/* Duplicar */}
+              <form action={duplicateProposalAction}>
+                <input type="hidden" name="id" value={proposal.id} />
+                <Button size="sm" variant="outline" className="w-full">
+                  <Copy className="h-3.5 w-3.5" />
+                  Duplicar proposta
+                </Button>
+              </form>
             </div>
           </Card>
 

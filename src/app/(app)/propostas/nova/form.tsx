@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Card, Input, Label, Select, Textarea, Badge } from "@/components/ui";
 import { brl, toCents } from "@/lib/utils";
 import { createProposalAction } from "@/lib/actions/proposals";
@@ -47,11 +47,25 @@ export function ProposalForm({
   products: ProductOpt[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
   const [customerId, setCustomerId] = useState("");
   const [productId, setProductId] = useState("");
+
+  // Pre-preencher via query params (vindo do pipeline)
+  useEffect(() => {
+    const qCustomer = searchParams.get("customerId");
+    const qProduct = searchParams.get("productId");
+    if (qCustomer && customers.some((c) => c.id === qCustomer)) {
+      setCustomerId(qCustomer);
+    }
+    if (qProduct && products.some((p) => p.id === qProduct)) {
+      onProductChange(qProduct);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
@@ -78,15 +92,17 @@ export function ProposalForm({
       });
     }
 
-    const isSubscription = product.type.startsWith("subscription");
-    newItems.push({
-      key: nextKey(),
-      label: isSubscription ? "Mensalidade" : "Licença",
-      type: isSubscription ? "monthly" : "one_time",
-      defaultValue: product.price / 100,
-      value: product.price / 100,
-      custom: false,
-    });
+    if (product.price > 0) {
+      const isYearly = product.type === "subscription_yearly";
+      newItems.push({
+        key: nextKey(),
+        label: isYearly ? "Licença Anual" : "Licença Mensal",
+        type: isYearly ? "yearly" : "monthly",
+        defaultValue: product.price / 100,
+        value: product.price / 100,
+        custom: false,
+      });
+    }
 
     setItems(newItems);
   }

@@ -337,20 +337,28 @@ function CreateUserForm({
         </Select>
       </div>
 
-      {role === "rep" && unlinkedReps.length > 0 && (
+      {role === "rep" && (
         <div>
           <Label htmlFor="cu-rep">Vincular a representante</Label>
-          <Select id="cu-rep" name="representativeId">
-            <option value="">— Nenhum —</option>
-            {unlinkedReps.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </Select>
-          <p className="mt-1 text-[10px] text-[var(--color-text-dim)]">
-            Vincule a um representante existente para que ele veja seus dados no painel.
-          </p>
+          {unlinkedReps.length > 0 ? (
+            <>
+              <Select id="cu-rep" name="representativeId">
+                <option value="">— Nenhum —</option>
+                {unlinkedReps.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1 text-[10px] text-[var(--color-text-dim)]">
+                Vincule a um representante existente para que ele veja seus dados no painel.
+              </p>
+            </>
+          ) : (
+            <p className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
+              Nenhum representante disponivel. Cadastre um representante primeiro em Representantes {">"} Novo.
+            </p>
+          )}
         </div>
       )}
 
@@ -426,21 +434,33 @@ function EditUserForm({
         </Select>
       </div>
 
-      {role === "rep" && unlinkedReps.length > 0 && (
+      {role === "rep" && (
         <div>
           <Label htmlFor="eu-rep">Vincular a representante</Label>
-          <Select
-            id="eu-rep"
-            name="representativeId"
-            defaultValue={user.repId ?? ""}
-          >
-            <option value="">— Nenhum —</option>
-            {unlinkedReps.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </Select>
+          {(unlinkedReps.length > 0 || user.repId) ? (
+            <Select
+              id="eu-rep"
+              name="representativeId"
+              defaultValue={user.repId ?? ""}
+            >
+              <option value="">— Nenhum —</option>
+              {/* Rep atual do usuario (pode nao estar em unlinkedReps) */}
+              {user.repId && user.repName && !unlinkedReps.some((r) => r.id === user.repId) && (
+                <option key={user.repId} value={user.repId}>
+                  {user.repName} (atual)
+                </option>
+              )}
+              {unlinkedReps.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <p className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-400">
+              Nenhum representante disponivel para vincular.
+            </p>
+          )}
         </div>
       )}
 

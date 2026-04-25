@@ -28,6 +28,8 @@ import {
   MapPin,
   Kanban,
   Target,
+  AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { requireScope } from "@/lib/auth";
 import { DashboardShell, CommissionProgress, QuickActions, TopCustomers } from "./client";
@@ -70,85 +72,107 @@ export default async function DashboardPage() {
     ? undefined
     : eq(schema.customers.representativeId, repId);
 
-  const [salesMonth] = await db
-    .select({
+  // ── Batch todas as queries independentes em paralelo ──
+  const sevenDaysFromNow = new Date();
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+  const [
+    [salesMonth],
+    [salesLastMonth],
+    [commissionsPending],
+    [commissionsPaid],
+    [commissionsPaidThisMonth],
+    [customerCount],
+    dailyRaw,
+    ranking,
+    expiringProposals,
+    [avgTicket],
+    recentSales,
+  ] = await Promise.all([
+    // 1. Vendas do mes
+    db.select({
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
       count: sql<number>`count(*)`,
-    })
-    .from(schema.sales)
-    .where(
-      scopeSales(
-        and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, firstOfMonth))
-      )
-    );
-
-  const [salesLastMonth] = await db
-    .select({
+    }).from(schema.sales).where(
+      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, firstOfMonth)))
+    ),
+    // 2. Vendas mes passado
+    db.select({
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
-    })
-    .from(schema.sales)
-    .where(
-      scopeSales(
-        and(
-          eq(schema.sales.status, "approved"),
-          gte(schema.sales.createdAt, firstOfLastMonth),
-          sql`${schema.sales.createdAt} < ${firstOfMonth.getTime()}`
-        )
-      )
-    );
-
-  const delta =
-    salesLastMonth && salesLastMonth.total > 0
-      ? ((salesMonth.total - salesLastMonth.total) / salesLastMonth.total) * 100
-      : 0;
-
-  const [commissionsPending] = await db
-    .select({
+    }).from(schema.sales).where(
+      scopeSales(and(
+        eq(schema.sales.status, "approved"),
+        gte(schema.sales.createdAt, firstOfLastMonth),
+        sql`${schema.sales.createdAt} < ${firstOfMonth.getTime()}`
+      ))
+    ),
+    // 3. Comissoes pendentes
+    db.select({
       total: sql<number>`coalesce(sum(${schema.commissions.amount}), 0)`,
       count: sql<number>`count(*)`,
-    })
-    .from(schema.commissions)
-    .where(scopeCommissions(eq(schema.commissions.status, "pending")));
-
-  const [commissionsPaid] = await db
-    .select({
+    }).from(schema.commissions).where(scopeCommissions(eq(schema.commissions.status, "pending"))),
+    // 4. Comissoes pagas
+    db.select({
       total: sql<number>`coalesce(sum(${schema.commissions.amount}), 0)`,
-    })
-    .from(schema.commissions)
-    .where(scopeCommissions(eq(schema.commissions.status, "paid")));
-
-  // Commission paid THIS month (for rep progress bar)
-  const [commissionsPaidThisMonth] = await db
-    .select({
+    }).from(schema.commissions).where(scopeCommissions(eq(schema.commissions.status, "paid"))),
+    // 5. Comissoes pagas neste mes
+    db.select({
       total: sql<number>`coalesce(sum(${schema.commissions.amount}), 0)`,
-    })
-    .from(schema.commissions)
-    .where(
-      scopeCommissions(
-        and(
-          eq(schema.commissions.status, "paid"),
-          gte(schema.commissions.paidAt, firstOfMonth)
-        )
-      )
-    );
-
-  const [customerCount] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.customers)
-    .where(scopeCustomers);
-
-  const dailyRaw = await db
-    .select({
+    }).from(schema.commissions).where(
+      scopeCommissions(and(eq(schema.commissions.status, "paid"), gte(schema.commissions.paidAt, firstOfMonth)))
+    ),
+    // 6. Total clientes
+    db.select({ count: sql<number>`count(*)` }).from(schema.customers).where(scopeCustomers),
+    // 7. Receita diaria (grafico)
+    db.select({
       day: sql<string>`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`,
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
-    })
-    .from(schema.sales)
-    .where(
-      scopeSales(
-        and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, daysAgo(29)))
-      )
-    )
-    .groupBy(sql`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`);
+    }).from(schema.sales).where(
+      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, daysAgo(29))))
+    ).groupBy(sql`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`),
+    // 8. Ranking reps
+    db.select({
+      repId: schema.representatives.id,
+      repName: schema.representatives.name,
+      totalSales: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
+      salesCount: sql<number>`count(${schema.sales.id})`,
+    }).from(schema.representatives).leftJoin(schema.sales, and(
+      eq(schema.sales.representativeId, schema.representatives.id),
+      eq(schema.sales.status, "approved"),
+      gte(schema.sales.createdAt, firstOfMonth)
+    )).groupBy(schema.representatives.id)
+      .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`)).limit(5),
+    // 9. Propostas expirando
+    db.select({
+      id: schema.proposals.id,
+      customerName: schema.customers.name,
+      validUntil: schema.proposals.validUntil,
+    }).from(schema.proposals)
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.proposals.customerId))
+      .where(and(
+        eq(schema.proposals.status, "sent"),
+        gte(schema.proposals.validUntil, new Date()),
+        sql`${schema.proposals.validUntil} <= ${sevenDaysFromNow.getTime()}`
+      )).limit(5),
+    // 10. Ticket medio
+    db.select({
+      avg: sql<number>`coalesce(avg(${schema.sales.total}), 0)`,
+    }).from(schema.sales).where(scopeSales(eq(schema.sales.status, "approved"))),
+    // 11. Vendas recentes
+    db.select({
+      id: schema.sales.id, total: schema.sales.total, createdAt: schema.sales.createdAt,
+      status: schema.sales.status, repName: schema.representatives.name,
+      customerName: schema.customers.name, productName: schema.products.name,
+    }).from(schema.sales)
+      .leftJoin(schema.representatives, eq(schema.representatives.id, schema.sales.representativeId))
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
+      .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
+      .where(scopeSales(undefined)).orderBy(desc(schema.sales.createdAt)).limit(6),
+  ]);
+
+  const delta = salesLastMonth && salesLastMonth.total > 0
+    ? ((salesMonth.total - salesLastMonth.total) / salesLastMonth.total) * 100
+    : 0;
 
   const dailyMap = new Map(dailyRaw.map((r) => [r.day, r.total]));
   const daily: { day: string; total: number }[] = [];
@@ -157,76 +181,24 @@ export default async function DashboardPage() {
     const key = d.toISOString().slice(0, 10);
     daily.push({ day: key, total: dailyMap.get(key) ?? 0 });
   }
-
   const sparkSales = daily.map((d) => d.total);
-
-  // Ranking (admin) or top customers (rep)
-  const rankingQuery = db
-    .select({
-      repId: schema.representatives.id,
-      repName: schema.representatives.name,
-      totalSales: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
-      salesCount: sql<number>`count(${schema.sales.id})`,
-    })
-    .from(schema.representatives)
-    .leftJoin(
-      schema.sales,
-      and(
-        eq(schema.sales.representativeId, schema.representatives.id),
-        eq(schema.sales.status, "approved"),
-        gte(schema.sales.createdAt, firstOfMonth)
-      )
-    )
-    .groupBy(schema.representatives.id)
-    .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
-    .limit(5);
-
-  const ranking = await rankingQuery;
   const rankingTop = ranking[0]?.totalSales ?? 0;
 
-  // Top 3 customers for rep
+  // Top customers (rep only) — depende de repId, roda separado
   let topCustomers: { id: string; name: string; total: number }[] = [];
   if (!isAdmin && repId) {
     topCustomers = await db
       .select({
-        id: schema.customers.id,
-        name: schema.customers.name,
+        id: schema.customers.id, name: schema.customers.name,
         total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
       })
       .from(schema.sales)
       .innerJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-      .where(
-        and(
-          eq(schema.sales.representativeId, repId),
-          eq(schema.sales.status, "approved"),
-          gte(schema.sales.createdAt, firstOfMonth)
-        )
-      )
+      .where(and(eq(schema.sales.representativeId, repId), eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, firstOfMonth)))
       .groupBy(schema.customers.id)
       .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
       .limit(3);
   }
-
-  const recentSales = await db
-    .select({
-      id: schema.sales.id,
-      total: schema.sales.total,
-      createdAt: schema.sales.createdAt,
-      status: schema.sales.status,
-      repName: schema.representatives.name,
-      customerName: schema.customers.name,
-      productName: schema.products.name,
-    })
-    .from(schema.sales)
-    .leftJoin(
-      schema.representatives,
-      eq(schema.representatives.id, schema.sales.representativeId)
-    )
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-    .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
-    .where(scopeSales(undefined))
-    .orderBy(desc(schema.sales.createdAt))
-    .limit(6);
 
   return (
     <DashboardShell>
@@ -277,6 +249,28 @@ export default async function DashboardPage() {
           icon={<Users className="h-4 w-4" />}
         />
       </div>
+
+      {/* Alertas de propostas expirando */}
+      {expiringProposals.length > 0 && (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-amber-500/20 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-semibold text-amber-400">
+              Propostas expirando em breve
+            </h3>
+          </div>
+          <ul className="space-y-1">
+            {expiringProposals.map((p) => (
+              <li key={p.id} className="flex items-center justify-between text-xs">
+                <Link href={`/propostas/${p.id}`} className="text-[var(--color-text)] hover:text-[var(--color-primary)]">
+                  {p.customerName ?? "—"}
+                </Link>
+                <span className="text-amber-400 tabular-nums">{dateShort(p.validUntil)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Quick Actions — só para rep */}
       {!isAdmin && (

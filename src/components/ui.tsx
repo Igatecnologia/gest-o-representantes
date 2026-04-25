@@ -72,7 +72,8 @@ export const Select = React.forwardRef<
   <select
     ref={ref}
     className={cn(
-      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 pr-9 text-base md:text-sm outline-none transition-all duration-150",
+      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] px-3 py-2.5 pr-9 text-base md:text-sm outline-none transition-all duration-150",
+      "[&>option]:bg-[var(--color-surface)] [&>option]:text-[var(--color-text)] [&>optgroup]:bg-[var(--color-surface)]",
       "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22 viewBox=%220 0 24 24%22><polyline points=%226 9 12 15 18 9%22/></svg>')] bg-[length:16px] bg-[right_0.625rem_center] bg-no-repeat",
       "hover:border-[var(--color-border-strong)]",
       "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20",
@@ -319,5 +320,216 @@ export function Kbd({ children }: { children: React.ReactNode }) {
     <kbd className="inline-flex h-5 min-w-[20px] items-center justify-center rounded border border-[var(--color-border-strong)] bg-[var(--color-surface-2)] px-1 text-[10px] font-mono text-[var(--color-text-muted)]">
       {children}
     </kbd>
+  );
+}
+
+/* ============= SEARCH INPUT ============= */
+
+export function SearchInput({
+  value,
+  onChange,
+  placeholder = "Buscar...",
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <div className={cn("relative", className)}>
+      <svg
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-dim)]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={cn(
+          "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-3 py-2 text-sm outline-none transition-all duration-150",
+          "placeholder:text-[var(--color-text-dim)]",
+          "hover:border-[var(--color-border-strong)]",
+          "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20"
+        )}
+      />
+    </div>
+  );
+}
+
+/* ============= CONFIRM DIALOG ============= */
+
+export function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+  confirmLabel = "Confirmar",
+  danger = false,
+  loading = false,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  loading?: boolean;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-sm rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-lg">
+        <h3 className="text-base font-semibold">{title}</h3>
+        {description && (
+          <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+            {description}
+          </p>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button
+            variant={danger ? "danger" : "primary"}
+            size="sm"
+            onClick={onConfirm}
+            disabled={loading}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============= SKELETON ROWS ============= */
+
+export function SkeletonRows({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex gap-4">
+          {Array.from({ length: cols }).map((_, j) => (
+            <div key={j} className="h-5 flex-1 skeleton" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ============= PAGINATION ============= */
+
+export function Pagination({
+  total,
+  page,
+  perPage,
+  onChange,
+}: {
+  total: number;
+  page: number;
+  perPage: number;
+  onChange: (p: number) => void;
+}) {
+  const totalPages = Math.ceil(total / perPage);
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="mt-4 flex items-center justify-between">
+      <span className="text-xs text-[var(--color-text-muted)]">
+        {total} registro(s) · Pagina {page} de {totalPages}
+      </span>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page <= 1}
+          className="rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-40"
+        >
+          Anterior
+        </button>
+        {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+          const p = totalPages <= 5 ? i + 1 : Math.max(1, Math.min(page - 2, totalPages - 4)) + i;
+          return (
+            <button
+              key={p}
+              onClick={() => onChange(p)}
+              className={cn(
+                "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                p === page
+                  ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                  : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]"
+              )}
+            >
+              {p}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page >= totalPages}
+          className="rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-2)] disabled:opacity-40"
+        >
+          Proximo
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============= STATUS FILTER ============= */
+
+export function StatusFilter({
+  options,
+  value,
+  onChange,
+}: {
+  options: { id: string; label: string; tone?: BadgeTone }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        onClick={() => onChange("")}
+        className={cn(
+          "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+          !value
+            ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+            : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
+        )}
+      >
+        Todos
+      </button>
+      {options.map((o) => (
+        <button
+          key={o.id}
+          onClick={() => onChange(o.id === value ? "" : o.id)}
+          className={cn(
+            "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+            value === o.id
+              ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }

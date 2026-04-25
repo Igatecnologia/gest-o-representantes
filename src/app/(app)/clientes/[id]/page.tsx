@@ -12,6 +12,9 @@ import {
   Pencil,
   Phone,
   Receipt,
+  FileText,
+  Kanban,
+  Plus,
 } from "lucide-react";
 import {
   Avatar,
@@ -25,7 +28,8 @@ import {
   TR,
   Table,
 } from "@/components/ui";
-import { brl, dateLong, maskCep, maskCnpj, maskPhone } from "@/lib/utils";
+import { brl, dateLong, dateShort, maskCep, maskCnpj, maskPhone } from "@/lib/utils";
+import { PROPOSAL_STATUSES, DEAL_STAGES } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +72,29 @@ export default async function CustomerPage({
     .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
     .where(eq(schema.sales.customerId, id))
     .orderBy(desc(schema.sales.createdAt));
+
+  // Propostas e deals em paralelo
+  const [proposals, deals] = await Promise.all([
+    db.select({
+      id: schema.proposals.id,
+      status: schema.proposals.status,
+      createdAt: schema.proposals.createdAt,
+      productName: schema.products.name,
+    }).from(schema.proposals)
+      .leftJoin(schema.products, eq(schema.products.id, schema.proposals.productId))
+      .where(eq(schema.proposals.customerId, id))
+      .orderBy(desc(schema.proposals.createdAt))
+      .limit(5),
+    db.select({
+      id: schema.deals.id,
+      title: schema.deals.title,
+      stage: schema.deals.stage,
+      value: schema.deals.value,
+    }).from(schema.deals)
+      .where(eq(schema.deals.customerId, id))
+      .orderBy(desc(schema.deals.createdAt))
+      .limit(5),
+  ]);
 
   const totalSpent = sales
     .filter((s) => s.status === "approved")
@@ -125,16 +152,22 @@ export default async function CustomerPage({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href={`/clientes/${customer.id}/editar`}>
-              <Button variant="secondary">
+              <Button variant="secondary" size="sm">
                 <Pencil className="h-3.5 w-3.5" />
                 Editar
               </Button>
             </Link>
+            <Link href={`/propostas/nova?customerId=${customer.id}`}>
+              <Button size="sm">
+                <FileText className="h-3.5 w-3.5" />
+                Nova proposta
+              </Button>
+            </Link>
             <Link href={`/vendas/nova?customerId=${customer.id}`}>
-              <Button>
-                <Receipt className="h-3.5 w-3.5" />
+              <Button variant="secondary" size="sm">
+                <Plus className="h-3.5 w-3.5" />
                 Nova venda
               </Button>
             </Link>
@@ -277,6 +310,64 @@ export default async function CustomerPage({
               </Table>
             )}
           </Card>
+
+          {/* Propostas vinculadas */}
+          <Card className="mt-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="h-4 w-4 text-violet-400" />
+                Propostas
+              </h2>
+              <Link href={`/propostas/nova?customerId=${customer.id}`} className="text-xs text-[var(--color-primary)] hover:underline">
+                Nova proposta
+              </Link>
+            </div>
+            {proposals.length === 0 ? (
+              <p className="text-sm text-[var(--color-text-muted)]">Nenhuma proposta para este cliente.</p>
+            ) : (
+              <ul className="space-y-2">
+                {proposals.map((p) => {
+                  const statusMeta = PROPOSAL_STATUSES.find((s) => s.id === p.status);
+                  const toneMap: Record<string, "default" | "brand" | "success" | "warning" | "danger"> = { draft: "default", sent: "brand", accepted: "success", rejected: "danger", expired: "warning" };
+                  return (
+                    <li key={p.id}>
+                      <Link href={`/propostas/${p.id}`} className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)]/30 px-3 py-2.5 hover:bg-[var(--color-surface-2)]/60 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <span className="text-sm font-medium">{p.productName ?? "—"}</span>
+                          <span className="ml-2 text-xs text-[var(--color-text-muted)]">{dateShort(p.createdAt)}</span>
+                        </div>
+                        <Badge tone={toneMap[p.status] ?? "default"}>{statusMeta?.label ?? p.status}</Badge>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+
+          {/* Negocios vinculados */}
+          {deals.length > 0 && (
+            <Card className="mt-6">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+                <Kanban className="h-4 w-4 text-cyan-400" />
+                Pipeline
+              </h2>
+              <ul className="space-y-2">
+                {deals.map((d) => {
+                  const stageMeta = DEAL_STAGES.find((s) => s.id === d.stage);
+                  return (
+                    <li key={d.id} className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)]/30 px-3 py-2.5">
+                      <div>
+                        <span className="text-sm font-medium">{d.title}</span>
+                        <span className="ml-2 text-xs font-semibold tabular-nums text-[var(--color-primary)]">{brl(d.value)}</span>
+                      </div>
+                      <Badge tone="brand">{stageMeta?.label ?? d.stage}</Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
+          )}
         </div>
       </div>
     </>

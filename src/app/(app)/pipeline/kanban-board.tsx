@@ -14,12 +14,13 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { brl, cn, dateShort } from "@/lib/utils";
 import { Avatar, Badge } from "@/components/ui";
 import { moveDealAction } from "@/lib/actions/deals";
 import type { DealStage } from "@/lib/db/schema";
-import { Calendar, Trophy, XCircle } from "lucide-react";
+import { Calendar, Trophy, XCircle, ExternalLink, FileText } from "lucide-react";
 
 type DealRow = {
   id: string;
@@ -222,11 +223,33 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
         )}
       </div>
 
-      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-        <div
-          className="h-full rounded-full bg-gradient-brand"
-          style={{ width: `${deal.probability}%` }}
-        />
+      <div className="mt-2 flex items-center gap-2">
+        <div className="flex-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+          <div
+            className="h-full rounded-full bg-gradient-brand"
+            style={{ width: `${deal.probability}%` }}
+          />
+        </div>
+        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {deal.productId && deal.stage !== "won" && deal.stage !== "lost" && (
+            <Link
+              href={`/propostas/nova?customerId=${deal.customerId}&productId=${deal.productId}`}
+              className="text-[var(--color-text-dim)] hover:text-emerald-400"
+              onClick={(e) => e.stopPropagation()}
+              title="Criar proposta"
+            >
+              <FileText className="h-3 w-3" />
+            </Link>
+          )}
+          <Link
+            href={`/clientes/${deal.customerId}`}
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)]"
+            onClick={(e) => e.stopPropagation()}
+            title="Ver cliente"
+          >
+            <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
     </div>
   );

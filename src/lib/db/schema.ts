@@ -102,6 +102,7 @@ export const sales = sqliteTable("sales", {
   index("idx_sales_customer").on(t.customerId),
   index("idx_sales_status").on(t.status),
   index("idx_sales_created").on(t.createdAt),
+  index("idx_sales_rep_status_created").on(t.representativeId, t.status, t.createdAt),
 ]);
 
 export const commissions = sqliteTable("commissions", {
@@ -121,6 +122,7 @@ export const commissions = sqliteTable("commissions", {
   index("idx_commissions_sale").on(t.saleId),
   index("idx_commissions_rep").on(t.representativeId),
   index("idx_commissions_status").on(t.status),
+  index("idx_commissions_rep_status").on(t.representativeId, t.status),
 ]);
 
 export const deals = sqliteTable("deals", {
@@ -170,6 +172,7 @@ export const proposals = sqliteTable("proposals", {
   index("idx_proposals_rep").on(t.representativeId),
   index("idx_proposals_customer").on(t.customerId),
   index("idx_proposals_status").on(t.status),
+  index("idx_proposals_status_valid").on(t.status, t.validUntil),
 ]);
 
 export const proposalItems = sqliteTable("proposal_items", {

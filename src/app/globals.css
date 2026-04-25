@@ -121,6 +121,13 @@ button {
   font: inherit;
 }
 
+select,
+option,
+optgroup {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
 :where(table) {
   border-collapse: collapse;
 }

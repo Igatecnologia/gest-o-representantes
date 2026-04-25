@@ -10,6 +10,9 @@ const withSerwist = withSerwistInit({
 const isProd = process.env.NODE_ENV === "production";
 
 const config: NextConfig = {
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
   async headers() {
     // Em produção: remove unsafe-eval (só necessário para hot reload do dev)
     const scriptSrc = isProd

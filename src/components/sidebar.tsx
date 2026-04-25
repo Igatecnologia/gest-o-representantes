@@ -31,23 +31,23 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pipeline", label: "Pipeline", icon: Kanban },
-  { href: "/clientes", label: "Clientes", icon: Building2 },
-  { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/representantes", label: "Representantes", icon: Users, adminOnly: true },
+  { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/produtos", label: "Produtos", icon: Package, adminOnly: true },
+  { href: "/pipeline", label: "Pipeline", icon: Kanban },
+  { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/vendas", label: "Vendas", icon: Receipt },
   { href: "/comissoes", label: "Comissões", icon: Wallet },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 const MOBILE_TABS: NavItem[] = [
-  { href: "/dashboard", label: "Início", icon: LayoutDashboard },
+  { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/campo", label: "Campo", icon: MapPin },
-  { href: "/pipeline", label: "Pipeline", icon: Kanban },
-  { href: "/configuracoes", label: "Conta", icon: UserCircle },
+  { href: "/vendas", label: "Vendas", icon: Receipt },
+  { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
 ];
 
 export function Sidebar({
