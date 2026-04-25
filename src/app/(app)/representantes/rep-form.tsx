@@ -106,14 +106,14 @@ export function RepForm({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="loginPassword">Senha inicial * (min 6)</Label>
+                  <Label htmlFor="loginPassword">Senha inicial * (mín. 8 caracteres)</Label>
                   <Input
                     id="loginPassword"
                     name="loginPassword"
                     type="text"
                     required={createLogin}
-                    minLength={6}
-                    placeholder="mudar123"
+                    minLength={8}
+                    placeholder="SenhaForte1!"
                   />
                 </div>
                 <p className="md:col-span-2 text-xs text-[var(--color-text-muted)]">

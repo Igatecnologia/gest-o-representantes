@@ -309,8 +309,8 @@ function CreateUserForm({
             name="password"
             type={showPw ? "text" : "password"}
             required
-            minLength={6}
-            placeholder="Mínimo 6 caracteres"
+            minLength={8}
+            placeholder="Mínimo 8 caracteres"
             className="pr-10"
           />
           <button
@@ -505,8 +505,8 @@ function ResetPasswordForm({
             name="newPassword"
             type={showPw ? "text" : "password"}
             required
-            minLength={6}
-            placeholder="Mínimo 6 caracteres"
+            minLength={8}
+            placeholder="Mínimo 8 caracteres"
             className="pr-10"
           />
           <button

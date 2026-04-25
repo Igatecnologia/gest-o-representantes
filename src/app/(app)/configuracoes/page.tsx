@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
-import { Lock, LogOut } from "lucide-react";
-import { Button, Card, Input, Label, Avatar, Badge } from "@/components/ui";
+import { useActionState, useEffect, useState } from "react";
+import { Lock, LogOut, Download, Smartphone } from "lucide-react";
+import { Button, Card, Input, Label } from "@/components/ui";
 import { changePasswordAction, logoutAction } from "@/lib/actions/auth";
 
 const initialState: { error?: string; success?: string } = {};
@@ -13,9 +13,76 @@ export default function ConfiguracoesPage() {
     initialState
   );
 
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Detecta se já está instalado como PWA
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    const prompt = installPrompt as BeforeInstallPromptEvent;
+    prompt.prompt();
+    const result = await prompt.userChoice;
+    if (result.outcome === "accepted") {
+      setIsInstalled(true);
+    }
+    setInstallPrompt(null);
+  }
+
   return (
     <div className="space-y-6">
-      {/* Logout — visível especialmente no mobile */}
+      {/* Instalar app — só aparece se disponível */}
+      {!isInstalled && (
+        <Card className="max-w-md">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-[var(--color-primary)]/10">
+                <Smartphone className="h-5 w-5 text-[var(--color-primary)]" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold">Instalar aplicativo</h2>
+                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+                  Acesse direto da tela inicial do celular.
+                </p>
+              </div>
+            </div>
+            {installPrompt ? (
+              <Button size="sm" onClick={handleInstall}>
+                <Download className="h-3.5 w-3.5" />
+                Instalar
+              </Button>
+            ) : (
+              <p className="text-xs text-[var(--color-text-muted)] max-w-[140px] text-right">
+                Use o menu do navegador → "Adicionar à tela inicial"
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {isInstalled && (
+        <Card className="max-w-md">
+          <div className="flex items-center gap-3">
+            <Smartphone className="h-5 w-5 text-emerald-400" />
+            <p className="text-sm text-emerald-400 font-medium">App instalado neste dispositivo</p>
+          </div>
+        </Card>
+      )}
+
+      {/* Logout */}
       <Card className="max-w-md">
         <div className="flex items-center justify-between">
           <div>
@@ -98,4 +165,10 @@ export default function ConfiguracoesPage() {
       </Card>
     </div>
   );
+}
+
+// Tipo do evento PWA
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
