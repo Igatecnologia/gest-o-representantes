@@ -28,9 +28,9 @@ export const Button = React.forwardRef<
       "bg-[var(--color-danger)] text-white hover:opacity-90 shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)]",
   };
   const sizes: Record<ButtonSize, string> = {
-    sm: "h-8 px-3 text-xs",
-    md: "h-9 px-4 text-sm",
-    lg: "h-11 px-5 text-sm",
+    sm: "h-10 px-3 text-xs",
+    md: "h-11 px-4 text-sm",
+    lg: "h-12 px-5 text-sm",
   };
   return (
     <button
@@ -51,7 +51,7 @@ export const Input = React.forwardRef<
   <input
     ref={ref}
     className={cn(
-      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm outline-none transition-all duration-150",
+      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-base md:text-sm outline-none transition-all duration-150",
       "placeholder:text-[var(--color-text-dim)]",
       "hover:border-[var(--color-border-strong)]",
       "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20 focus:shadow-[0_0_0_1px_rgba(46,109,180,0.3)]",
@@ -72,7 +72,7 @@ export const Select = React.forwardRef<
   <select
     ref={ref}
     className={cn(
-      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 pr-9 text-sm outline-none transition-all duration-150",
+      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 pr-9 text-base md:text-sm outline-none transition-all duration-150",
       "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22 viewBox=%220 0 24 24%22><polyline points=%226 9 12 15 18 9%22/></svg>')] bg-[length:16px] bg-[right_0.625rem_center] bg-no-repeat",
       "hover:border-[var(--color-border-strong)]",
       "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20",
@@ -207,8 +207,8 @@ export function Badge({
 
 export function Table({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] card-glow">
-      <table className="w-full text-sm">{children}</table>
+    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] card-glow">
+      <table className="w-full min-w-[600px] text-sm">{children}</table>
     </div>
   );
 }

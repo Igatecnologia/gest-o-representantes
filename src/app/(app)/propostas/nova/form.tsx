@@ -299,7 +299,7 @@ export function ProposalForm({
                         Padrão: {brl(toCents(item.defaultValue))}
                       </div>
                     )}
-                    <div className="ml-auto w-40">
+                    <div className="ml-auto w-full max-w-[160px]">
                       <Label>Valor (R$)</Label>
                       <Input
                         type="number"

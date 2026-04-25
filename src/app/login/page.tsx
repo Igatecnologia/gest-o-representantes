@@ -63,7 +63,7 @@ export default function LoginPage() {
       </div>
 
       {/* RIGHT: Login form */}
-      <div className="flex w-full items-center justify-center px-6 py-12 lg:w-[500px]">
+      <div className="relative z-10 flex w-full items-center justify-center px-4 py-8 md:px-6 md:py-12 lg:w-[500px]">
         <div className="w-full max-w-sm">
           <div className="mb-10 lg:hidden">
             <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ export default function LoginPage() {
                   required
                   autoComplete="email"
                   placeholder="voce@empresa.com"
-                  className="h-12 pl-10 text-[15px]"
+                  className="h-12 pl-10 text-base"
                 />
               </div>
             </div>
@@ -117,7 +117,7 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="h-12 pl-10 text-[15px]"
+                  className="h-12 pl-10 text-base"
                 />
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="h-12 w-full text-[15px] shadow-[0_0_20px_rgba(46,109,180,0.3)]" disabled={pending}>
+            <Button type="submit" size="lg" className="h-12 w-full text-base shadow-[0_0_20px_rgba(46,109,180,0.3)]" disabled={pending}>
               {pending ? "Entrando..." : "Entrar"}
             </Button>
           </form>

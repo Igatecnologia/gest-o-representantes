@@ -194,7 +194,7 @@ export function Sidebar({
 
       {/* Mobile tab bar */}
       <nav aria-label="Navegação mobile" className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-2xl md:hidden pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center justify-around px-2 py-2">
+        <div className="flex items-stretch justify-around px-1 py-1">
           {MOBILE_TABS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
@@ -203,7 +203,7 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-medium transition-all duration-150 min-w-0",
+                  "relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-2 text-[11px] font-medium transition-all duration-150",
                   active
                     ? "text-[var(--color-primary)]"
                     : "text-[var(--color-text-dim)]"
@@ -212,12 +212,12 @@ export function Sidebar({
                 {active && (
                   <motion.span
                     layoutId="mobile-tab-active"
-                    className="absolute -top-2 h-0.5 w-8 rounded-full bg-gradient-brand shadow-[0_0_8px_rgba(46,109,180,0.5)]"
+                    className="absolute -top-1 h-0.5 w-6 rounded-full bg-gradient-brand shadow-[0_0_8px_rgba(46,109,180,0.5)]"
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
                 <item.icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_6px_rgba(46,109,180,0.5)]")} />
-                <span className="truncate max-w-[56px]">{item.label}</span>
+                <span>{item.label}</span>
               </Link>
             );
           })}
