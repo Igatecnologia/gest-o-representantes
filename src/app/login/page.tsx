@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="mb-10 lg:hidden">
             <div className="flex items-center gap-3">
-              <Image
+              <img
                 src="/logo-iga.png"
                 alt="IGA"
                 width={36}

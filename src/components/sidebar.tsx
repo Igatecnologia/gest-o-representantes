@@ -14,6 +14,8 @@ import {
   FileText,
   Settings,
   MapPin,
+  UserCircle,
+  LogOut,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -45,7 +47,7 @@ const MOBILE_TABS: NavItem[] = [
   { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/campo", label: "Campo", icon: MapPin },
   { href: "/pipeline", label: "Pipeline", icon: Kanban },
-  { href: "/vendas", label: "Vendas", icon: Receipt },
+  { href: "/configuracoes", label: "Conta", icon: UserCircle },
 ];
 
 export function Sidebar({
