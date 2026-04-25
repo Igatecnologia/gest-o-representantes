@@ -152,12 +152,12 @@ export default async function PropostasPage() {
                     </div>
 
                     {p.status === "draft" && (
-                      <div className="mt-2 flex justify-end" onClick={(e) => e.preventDefault()}>
+                      <div className="mt-2 flex justify-end">
                         <form action={deleteProposalAction}>
                           <input type="hidden" name="id" value={p.id} />
                           <button
                             type="submit"
-                            className="text-[11px] text-[var(--color-text-muted)] hover:text-red-400"
+                            className="relative z-10 text-[11px] text-[var(--color-text-muted)] hover:text-red-400"
                           >
                             Excluir rascunho
                           </button>
