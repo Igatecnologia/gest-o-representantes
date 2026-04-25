@@ -10,7 +10,7 @@ import { requireAdmin } from "@/lib/auth";
 
 const repSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.literal("").or(z.string().email("E-mail inválido")).optional(),
   phone: z.string().optional(),
   commissionPct: z.coerce.number().min(0).max(100),
   active: z.union([z.literal("on"), z.literal(null), z.literal("")]).optional(),
@@ -18,8 +18,8 @@ const repSchema = z.object({
   createLogin: z
     .union([z.literal("on"), z.literal(null), z.literal("")])
     .optional(),
-  loginEmail: z.string().email().optional().or(z.literal("")),
-  loginPassword: z.string().min(8).optional().or(z.literal("")),
+  loginEmail: z.literal("").or(z.string().email("E-mail de login inválido")).optional(),
+  loginPassword: z.literal("").or(z.string().min(8, "Senha mín. 8 caracteres")).optional(),
 });
 
 export async function createRepAction(_prev: unknown, formData: FormData) {
