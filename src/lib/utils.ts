@@ -61,6 +61,14 @@ export function maskCep(raw: string): string {
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
 
+export function maskCpf(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 11);
+  return d
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
 export function maskCnpj(raw: string): string {
   const d = raw.replace(/\D/g, "").slice(0, 14);
   return d

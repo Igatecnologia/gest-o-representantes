@@ -4,7 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
-import { maskCep, maskCnpj, maskPhone } from "@/lib/utils";
+import { maskCep, maskCnpj, maskCpf, maskPhone } from "@/lib/utils";
 import { Check, Loader2, MapPin, Search, Sparkles } from "lucide-react";
 import type { Customer } from "@/lib/db/schema";
 
@@ -16,7 +16,10 @@ const UF = [
   "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
 ];
 
+type PersonType = "pj" | "pf";
+
 type FormState = {
+  personType: PersonType;
   name: string;
   tradeName: string;
   document: string;
@@ -32,11 +35,21 @@ type FormState = {
   notes: string;
 };
 
+function detectPersonType(doc?: string | null): PersonType {
+  if (!doc) return "pj";
+  const digits = doc.replace(/\D/g, "");
+  return digits.length <= 11 ? "pf" : "pj";
+}
+
 function fromCustomer(c?: Customer): FormState {
+  const pt = detectPersonType(c?.document);
   return {
+    personType: pt,
     name: c?.name ?? "",
     tradeName: c?.tradeName ?? "",
-    document: c?.document ? maskCnpj(c.document) : "",
+    document: c?.document
+      ? pt === "pf" ? maskCpf(c.document) : maskCnpj(c.document)
+      : "",
     email: c?.email ?? "",
     phone: c?.phone ? maskPhone(c.phone) : "",
     cep: c?.cep ? maskCep(c.cep) : "",
@@ -70,8 +83,20 @@ export function CustomerForm({
   const [cnpjOk, setCnpjOk] = useState(Boolean(initial?.document));
   const [cepOk, setCepOk] = useState(Boolean(initial?.cep));
 
+  const isPJ = f.personType === "pj";
+
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setF((prev) => ({ ...prev, [k]: v }));
+
+  const switchPersonType = (pt: PersonType) => {
+    setF((prev) => ({
+      ...prev,
+      personType: pt,
+      document: "",
+      tradeName: pt === "pf" ? "" : prev.tradeName,
+    }));
+    setCnpjOk(false);
+  };
 
   const lookupCnpj = () => {
     const digits = f.document.replace(/\D/g, "");
@@ -152,46 +177,72 @@ export function CustomerForm({
               <Sparkles className="h-3 w-3 text-[var(--color-primary)]" />
             </div>
             <h3 className="text-sm font-semibold">Identificação</h3>
-            <span className="text-xs text-[var(--color-text-muted)]">
-              (Preencher com CNPJ acelera o cadastro)
-            </span>
+          </div>
+
+          {/* Seletor PF / PJ */}
+          <div className="mb-4 flex rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 p-1">
+            <button
+              type="button"
+              onClick={() => switchPersonType("pj")}
+              className={`flex-1 rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium transition-all ${
+                isPJ
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              Pessoa Jurídica
+            </button>
+            <button
+              type="button"
+              onClick={() => switchPersonType("pf")}
+              className={`flex-1 rounded-[var(--radius-sm)] px-4 py-2 text-sm font-medium transition-all ${
+                !isPJ
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              Pessoa Física
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Documento */}
             <div className="md:col-span-2">
-              <Label htmlFor="document">CNPJ</Label>
+              <Label htmlFor="document">{isPJ ? "CNPJ" : "CPF"}</Label>
               <div className="flex gap-2">
                 <Input
                   id="document"
                   name="document"
-                  placeholder="00.000.000/0000-00"
+                  placeholder={isPJ ? "00.000.000/0000-00" : "000.000.000-00"}
                   value={f.document}
                   onChange={(e) => {
-                    set("document", maskCnpj(e.target.value));
+                    set("document", isPJ ? maskCnpj(e.target.value) : maskCpf(e.target.value));
                     setCnpjOk(false);
                   }}
                   className="font-mono"
                 />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={lookupCnpj}
-                  disabled={loadingCnpj}
-                >
-                  {loadingCnpj ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : cnpjOk ? (
-                    <Check className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                  Buscar
-                </Button>
+                {isPJ && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={lookupCnpj}
+                    disabled={loadingCnpj}
+                  >
+                    {loadingCnpj ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : cnpjOk ? (
+                      <Check className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <Search className="h-4 w-4" />
+                    )}
+                    Buscar
+                  </Button>
+                )}
               </div>
             </div>
 
             <div>
-              <Label htmlFor="name">Razão social *</Label>
+              <Label htmlFor="name">{isPJ ? "Razão social *" : "Nome completo *"}</Label>
               <Input
                 id="name"
                 name="name"
@@ -201,15 +252,17 @@ export function CustomerForm({
               />
             </div>
 
-            <div>
-              <Label htmlFor="tradeName">Nome fantasia</Label>
-              <Input
-                id="tradeName"
-                name="tradeName"
-                value={f.tradeName}
-                onChange={(e) => set("tradeName", e.target.value)}
-              />
-            </div>
+            {isPJ && (
+              <div>
+                <Label htmlFor="tradeName">Nome fantasia</Label>
+                <Input
+                  id="tradeName"
+                  name="tradeName"
+                  value={f.tradeName}
+                  onChange={(e) => set("tradeName", e.target.value)}
+                />
+              </div>
+            )}
 
             <div>
               <Label htmlFor="email">E-mail</Label>
