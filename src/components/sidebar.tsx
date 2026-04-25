@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 import {
@@ -87,7 +86,7 @@ export function Sidebar({
         {/* Brand */}
         <div className="flex h-16 items-center border-b border-[var(--color-border)] px-4">
           <div className="flex items-center gap-3">
-            <Image
+            <img
               src="/logo-iga.png"
               alt="IGA"
               width={32}

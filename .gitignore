@@ -12,3 +12,4 @@ data.db-journal
 public/sw.js
 public/swe-worker-*.js
 
+.vercel

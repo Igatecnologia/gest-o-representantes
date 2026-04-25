@@ -3,7 +3,6 @@
 import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/auth";
 import { Button, Input, Label } from "@/components/ui";
-import Image from "next/image";
 import { Lock, Mail, Sparkles, TrendingUp, Users, Zap, Shield } from "lucide-react";
 
 const initialState: { error?: string } = {};
@@ -21,7 +20,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 p-10">
           <div className="flex items-center gap-3">
-            <Image
+            <img
               src="/logo-iga.png"
               alt="IGA"
               width={44}
