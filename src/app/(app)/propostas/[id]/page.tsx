@@ -113,45 +113,81 @@ export default async function ProposalDetailPage({
           {/* Itens */}
           <Card>
             <h2 className="mb-4 text-sm font-semibold">Itens da proposta</h2>
-            <Table>
-              <THead>
-                <tr>
-                  <TH>Item</TH>
-                  <TH>Tipo</TH>
-                  <TH className="text-right">Valor padrão</TH>
-                  <TH className="text-right">Valor proposto</TH>
-                </tr>
-              </THead>
-              <tbody>
-                {items.map((item) => {
-                  const diff = item.value !== item.defaultValue && item.defaultValue > 0;
-                  return (
-                    <TR key={item.id}>
-                      <TD className="font-medium">{item.label}</TD>
-                      <TD>
-                        <Badge tone={item.type === "monthly" ? "brand" : item.type === "yearly" ? "info" : "default"}>
-                          {typeLabel(item.type)}
-                        </Badge>
-                      </TD>
-                      <TD className="text-right tabular-nums text-[var(--color-text-muted)]">
-                        {item.defaultValue > 0 ? brl(item.defaultValue) : "—"}
-                      </TD>
-                      <TD className="text-right tabular-nums font-semibold">
-                        <span className={diff ? "text-amber-400" : ""}>
+
+            {/* Mobile: cards empilhados */}
+            <div className="space-y-3 md:hidden">
+              {items.map((item) => {
+                const diff = item.value !== item.defaultValue && item.defaultValue > 0;
+                return (
+                  <div key={item.id} className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{item.label}</span>
+                      <Badge tone={item.type === "monthly" ? "brand" : item.type === "yearly" ? "info" : "default"}>
+                        {typeLabel(item.type)}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex items-end justify-between">
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        {item.defaultValue > 0 ? `Padrão: ${brl(item.defaultValue)}` : ""}
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-lg font-bold tabular-nums ${diff ? "text-amber-400" : ""}`}>
                           {brl(item.value)}
                         </span>
                         {diff && (
-                          <span className="ml-1.5 text-xs text-[var(--color-text-muted)]">
-                            ({item.value > item.defaultValue ? "+" : ""}
-                            {brl(item.value - item.defaultValue)})
-                          </span>
+                          <div className="text-[10px] text-[var(--color-text-muted)]">
+                            {item.value > item.defaultValue ? "+" : ""}{brl(item.value - item.defaultValue)}
+                          </div>
                         )}
-                      </TD>
-                    </TR>
-                  );
-                })}
-              </tbody>
-            </Table>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block">
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>Item</TH>
+                    <TH>Tipo</TH>
+                    <TH className="text-right">Valor padrão</TH>
+                    <TH className="text-right">Valor proposto</TH>
+                  </tr>
+                </THead>
+                <tbody>
+                  {items.map((item) => {
+                    const diff = item.value !== item.defaultValue && item.defaultValue > 0;
+                    return (
+                      <TR key={item.id}>
+                        <TD className="font-medium">{item.label}</TD>
+                        <TD>
+                          <Badge tone={item.type === "monthly" ? "brand" : item.type === "yearly" ? "info" : "default"}>
+                            {typeLabel(item.type)}
+                          </Badge>
+                        </TD>
+                        <TD className="text-right tabular-nums text-[var(--color-text-muted)]">
+                          {item.defaultValue > 0 ? brl(item.defaultValue) : "—"}
+                        </TD>
+                        <TD className="text-right tabular-nums font-semibold">
+                          <span className={diff ? "text-amber-400" : ""}>
+                            {brl(item.value)}
+                          </span>
+                          {diff && (
+                            <span className="ml-1.5 text-xs text-[var(--color-text-muted)]">
+                              ({item.value > item.defaultValue ? "+" : ""}
+                              {brl(item.value - item.defaultValue)})
+                            </span>
+                          )}
+                        </TD>
+                      </TR>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </div>
           </Card>
 
           {/* Notas */}

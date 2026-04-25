@@ -254,10 +254,9 @@ export function ProposalForm({
                   key={item.key}
                   className="rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 p-4"
                 >
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
-                    {/* Label */}
-                    <div className="md:col-span-4">
-                      <Label>Item</Label>
+                  {/* Header: nome + tipo + remover */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
                       {item.custom ? (
                         <Input
                           value={item.label}
@@ -265,42 +264,43 @@ export function ProposalForm({
                           placeholder="Ex: Treinamento, Suporte..."
                         />
                       ) : (
-                        <div className="flex h-9 items-center text-sm font-medium">
-                          {item.label}
-                        </div>
+                        <span className="text-sm font-medium">{item.label}</span>
                       )}
                     </div>
+                    {item.custom ? (
+                      <Select
+                        value={item.type}
+                        onChange={(e) => updateItemType(item.key, e.target.value as LineItem["type"])}
+                        className="w-24 shrink-0"
+                      >
+                        <option value="one_time">Único</option>
+                        <option value="monthly">Mensal</option>
+                        <option value="yearly">Anual</option>
+                      </Select>
+                    ) : (
+                      <Badge tone={item.type === "monthly" ? "brand" : "default"} className="shrink-0">
+                        {typeLabel(item.type)}
+                      </Badge>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.key)}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
+                      aria-label={`Remover ${item.label || "item"}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                    {/* Tipo */}
-                    <div className="md:col-span-2">
-                      <Label>Tipo</Label>
-                      {item.custom ? (
-                        <Select
-                          value={item.type}
-                          onChange={(e) => updateItemType(item.key, e.target.value as LineItem["type"])}
-                        >
-                          <option value="one_time">Único</option>
-                          <option value="monthly">Mensal</option>
-                          <option value="yearly">Anual</option>
-                        </Select>
-                      ) : (
-                        <div className="flex h-9 items-center text-sm text-[var(--color-text-muted)]">
-                          {typeLabel(item.type)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Valor padrão */}
-                    <div className="md:col-span-2">
-                      <Label>Padrão</Label>
-                      <div className="flex h-9 items-center text-sm text-[var(--color-text-muted)] tabular-nums">
-                        {item.defaultValue > 0 ? brl(toCents(item.defaultValue)) : "—"}
+                  {/* Valores */}
+                  <div className="mt-3 flex items-end gap-4">
+                    {item.defaultValue > 0 && (
+                      <div className="text-xs text-[var(--color-text-muted)]">
+                        Padrão: {brl(toCents(item.defaultValue))}
                       </div>
-                    </div>
-
-                    {/* Valor proposto (editável) */}
-                    <div className="md:col-span-3">
-                      <Label>Valor proposto (R$)</Label>
+                    )}
+                    <div className="ml-auto w-40">
+                      <Label>Valor (R$)</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -308,18 +308,6 @@ export function ProposalForm({
                         value={item.value}
                         onChange={(e) => updateItemValue(item.key, Number(e.target.value) || 0)}
                       />
-                    </div>
-
-                    {/* Remove */}
-                    <div className="md:col-span-1 flex items-end justify-center">
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.key)}
-                        className="flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                        aria-label={`Remover ${item.label || "item"}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
                     </div>
                   </div>
 
