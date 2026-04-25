@@ -5,13 +5,90 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HoverCard } from "./motion";
 
+export type StatTone = "blue" | "emerald" | "amber" | "violet" | "cyan" | "rose";
+
+const TONE_CONFIG: Record<
+  StatTone,
+  {
+    glow: string;
+    iconBg: string;
+    iconText: string;
+    sparkStroke: string;
+    sparkFill: string;
+    orbColor: string;
+    orbColor2: string;
+    border: string;
+  }
+> = {
+  blue: {
+    glow: "card-glow-blue",
+    iconBg: "bg-blue-500/15",
+    iconText: "text-blue-400",
+    sparkStroke: "#3b82f6",
+    sparkFill: "#3b82f6",
+    orbColor: "bg-blue-500/20",
+    orbColor2: "bg-indigo-500/10",
+    border: "border-blue-500/15",
+  },
+  emerald: {
+    glow: "card-glow-emerald",
+    iconBg: "bg-emerald-500/15",
+    iconText: "text-emerald-400",
+    sparkStroke: "#10b981",
+    sparkFill: "#10b981",
+    orbColor: "bg-emerald-500/20",
+    orbColor2: "bg-teal-500/10",
+    border: "border-emerald-500/15",
+  },
+  amber: {
+    glow: "card-glow-amber",
+    iconBg: "bg-amber-500/15",
+    iconText: "text-amber-400",
+    sparkStroke: "#f59e0b",
+    sparkFill: "#f59e0b",
+    orbColor: "bg-amber-500/20",
+    orbColor2: "bg-orange-500/10",
+    border: "border-amber-500/15",
+  },
+  violet: {
+    glow: "card-glow-violet",
+    iconBg: "bg-violet-500/15",
+    iconText: "text-violet-400",
+    sparkStroke: "#8b5cf6",
+    sparkFill: "#8b5cf6",
+    orbColor: "bg-violet-500/20",
+    orbColor2: "bg-purple-500/10",
+    border: "border-violet-500/15",
+  },
+  cyan: {
+    glow: "card-glow-cyan",
+    iconBg: "bg-cyan-500/15",
+    iconText: "text-cyan-400",
+    sparkStroke: "#06b6d4",
+    sparkFill: "#06b6d4",
+    orbColor: "bg-cyan-500/20",
+    orbColor2: "bg-sky-500/10",
+    border: "border-cyan-500/15",
+  },
+  rose: {
+    glow: "card-glow-rose",
+    iconBg: "bg-rose-500/15",
+    iconText: "text-rose-400",
+    sparkStroke: "#f43f5e",
+    sparkFill: "#f43f5e",
+    orbColor: "bg-rose-500/20",
+    orbColor2: "bg-pink-500/10",
+    border: "border-rose-500/15",
+  },
+};
+
 export function StatCard({
   label,
   value,
   delta,
   hint,
   sparkline,
-  tone = "default",
+  tone = "blue",
   icon,
 }: {
   label: string;
@@ -19,9 +96,10 @@ export function StatCard({
   delta?: number;
   hint?: string;
   sparkline?: number[];
-  tone?: "default" | "primary";
+  tone?: StatTone;
   icon?: React.ReactNode;
 }) {
+  const cfg = TONE_CONFIG[tone];
   const data = (sparkline ?? []).map((v, i) => ({ i, v }));
   const up = (delta ?? 0) >= 0;
   const gradientId = `g-${label.replace(/\s+/g, "")}`;
@@ -30,18 +108,15 @@ export function StatCard({
     <HoverCard
       className={cn(
         "group relative overflow-hidden rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-5 transition-all duration-300",
-        tone === "primary"
-          ? "border-[color:var(--color-primary)]/20 bg-gradient-brand-subtle shadow-[0_0_24px_-4px_rgba(46,109,180,0.15)]"
-          : "border-[var(--color-border)] card-glow"
+        cfg.glow,
+        cfg.border
       )}
     >
-      {/* Ambient glow */}
-      {tone === "primary" && (
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-[var(--color-primary)]/15 blur-3xl glow-pulse" />
-          <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-[var(--color-accent)]/10 blur-3xl glow-pulse" />
-        </div>
-      )}
+      {/* Orbs de cor flutuantes */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className={cn("absolute -top-12 -right-12 h-40 w-40 rounded-full blur-3xl glow-pulse orb-float", cfg.orbColor)} />
+        <div className={cn("absolute -bottom-8 -left-8 h-28 w-28 rounded-full blur-3xl glow-pulse", cfg.orbColor2)} style={{ animationDelay: "1.5s" }} />
+      </div>
 
       <div className="relative">
         <div className="flex items-center justify-between">
@@ -50,10 +125,8 @@ export function StatCard({
           </span>
           {icon && (
             <div className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)]",
-              tone === "primary"
-                ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
-                : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]"
+              "flex h-9 w-9 items-center justify-center rounded-[var(--radius-sm)]",
+              cfg.iconBg, cfg.iconText
             )}>
               {icon}
             </div>
@@ -66,7 +139,7 @@ export function StatCard({
             <div
               className={cn(
                 "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
-                up ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                up ? "bg-emerald-500/12 text-emerald-400" : "bg-red-500/12 text-red-400"
               )}
             >
               {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -83,14 +156,14 @@ export function StatCard({
               <AreaChart data={data}>
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2e6db4" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#2e6db4" stopOpacity={0} />
+                    <stop offset="0%" stopColor={cfg.sparkFill} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={cfg.sparkFill} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <Area
                   type="monotone"
                   dataKey="v"
-                  stroke="#4a90d9"
+                  stroke={cfg.sparkStroke}
                   strokeWidth={2}
                   fill={`url(#${gradientId})`}
                 />

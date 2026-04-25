@@ -81,7 +81,7 @@ export function Sidebar({
       <aside
         aria-label="Menu principal"
         className={cn(
-          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-2xl transition-[width] duration-200 md:flex",
+          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur-2xl transition-[width] duration-200 md:flex sidebar-glow",
           collapsed ? "w-[68px]" : "w-[248px]"
         )}
       >

@@ -252,26 +252,29 @@ export default async function DashboardPage() {
           delta={delta}
           hint={`${salesMonth?.count ?? 0} venda(s) aprovada(s)`}
           sparkline={sparkSales}
-          tone="primary"
-          icon={<TrendingUp className="h-3.5 w-3.5" />}
+          tone="emerald"
+          icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard
           label="Comissão pendente"
           value={brl(commissionsPending?.total ?? 0)}
           hint={`${commissionsPending?.count ?? 0} aberta(s)`}
-          icon={<Wallet className="h-3.5 w-3.5" />}
+          tone="amber"
+          icon={<Wallet className="h-4 w-4" />}
         />
         <StatCard
           label={isAdmin ? "Comissão paga (total)" : "Comissão paga"}
           value={brl(commissionsPaid?.total ?? 0)}
           hint="acumulado histórico"
-          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+          tone="violet"
+          icon={<CheckCircle2 className="h-4 w-4" />}
         />
         <StatCard
           label={isAdmin ? "Clientes ativos" : "Meus clientes"}
           value={String(customerCount?.count ?? 0)}
           hint={isAdmin ? "base total" : "vinculados a você"}
-          icon={<Users className="h-3.5 w-3.5" />}
+          tone="cyan"
+          icon={<Users className="h-4 w-4" />}
         />
       </div>
 

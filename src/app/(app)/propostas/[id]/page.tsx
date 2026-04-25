@@ -24,7 +24,9 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  Download,
 } from "lucide-react";
+import { PdfButton } from "./pdf-button";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +67,12 @@ export default async function ProposalDetailPage({
       customerName: schema.customers.name,
       customerEmail: schema.customers.email,
       customerPhone: schema.customers.phone,
+      customerDocument: schema.customers.document,
+      customerCity: schema.customers.city,
+      customerState: schema.customers.state,
       repName: schema.representatives.name,
+      repEmail: schema.representatives.email,
+      repPhone: schema.representatives.phone,
       productName: schema.products.name,
     })
     .from(schema.proposals)
@@ -250,6 +257,45 @@ export default async function ProposalDetailPage({
                 </div>
               )}
             </div>
+          </Card>
+
+          {/* Gerar PDF */}
+          <Card>
+            <h2 className="mb-3 text-sm font-semibold flex items-center gap-2">
+              <Download className="h-4 w-4 text-[var(--color-primary)]" />
+              Exportar
+            </h2>
+            <PdfButton
+              proposal={{
+                id: proposal.id,
+                createdAt: dateShort(proposal.createdAt),
+                validUntil: proposal.validUntil ? dateShort(proposal.validUntil) : undefined,
+                notes: proposal.notes ?? undefined,
+                customerName: proposal.customerName ?? "",
+                customerEmail: proposal.customerEmail ?? undefined,
+                customerPhone: proposal.customerPhone ?? undefined,
+                customerDocument: proposal.customerDocument ?? undefined,
+                customerAddress: [proposal.customerCity, proposal.customerState].filter(Boolean).join(" / ") || undefined,
+                repName: proposal.repName ?? "",
+                repEmail: proposal.repEmail ?? undefined,
+                repPhone: proposal.repPhone ?? undefined,
+                productName: proposal.productName ?? "",
+              }}
+              items={items.map((i) => ({
+                label: i.label,
+                type: i.type as "one_time" | "monthly" | "yearly",
+                defaultValue: i.defaultValue,
+                value: i.value,
+              }))}
+              totals={{
+                oneTime: totalOneTime,
+                monthly: totalMonthly,
+                yearly: totalYearly,
+              }}
+            />
+            <p className="mt-2 text-[10px] text-[var(--color-text-muted)]">
+              PDF com logo oficial, dados do cliente e tabela de itens
+            </p>
           </Card>
 
           {/* Resumo financeiro */}

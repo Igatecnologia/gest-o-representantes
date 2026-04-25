@@ -28,6 +28,7 @@ const ACTIONS = [
     color: "text-sky-400",
     glow: "bg-sky-500/15",
     border: "hover:border-sky-500/30",
+    shadow: "hover:shadow-[0_0_24px_-4px_rgba(14,165,233,0.2)]",
   },
   {
     href: "/vendas/nova",
@@ -37,15 +38,17 @@ const ACTIONS = [
     color: "text-emerald-400",
     glow: "bg-emerald-500/15",
     border: "hover:border-emerald-500/30",
+    shadow: "hover:shadow-[0_0_24px_-4px_rgba(16,185,129,0.2)]",
   },
   {
     href: "/pipeline/novo",
     label: "Novo Negócio",
     description: "Adicionar ao pipeline",
     icon: Kanban,
-    color: "text-cyan-400",
-    glow: "bg-cyan-500/15",
-    border: "hover:border-cyan-500/30",
+    color: "text-violet-400",
+    glow: "bg-violet-500/15",
+    border: "hover:border-violet-500/30",
+    shadow: "hover:shadow-[0_0_24px_-4px_rgba(139,92,246,0.2)]",
   },
 ];
 
@@ -55,7 +58,7 @@ export function QuickActions() {
       {ACTIONS.map((a) => (
         <Link key={a.href} href={a.href}>
           <HoverCard
-            className={`group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 card-glow transition-all duration-200 ${a.border}`}
+            className={`group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 card-glow transition-all duration-200 ${a.border} ${a.shadow}`}
           >
             <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius)] ${a.glow}`}>
               <a.icon className={`h-5 w-5 ${a.color}`} />
