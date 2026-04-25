@@ -11,7 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function ProductsPage() {
   await requireAdmin();
   const products = await db
-    .select()
+    .select({
+      id: schema.products.id,
+      name: schema.products.name,
+      sku: schema.products.sku,
+      price: schema.products.price,
+      type: schema.products.type,
+      active: schema.products.active,
+    })
     .from(schema.products)
     .orderBy(desc(schema.products.createdAt));
 

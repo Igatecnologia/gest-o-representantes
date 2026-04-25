@@ -11,7 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function RepsPage() {
   await requireAdmin();
   const reps = await db
-    .select()
+    .select({
+      id: schema.representatives.id,
+      name: schema.representatives.name,
+      email: schema.representatives.email,
+      phone: schema.representatives.phone,
+      commissionPct: schema.representatives.commissionPct,
+      active: schema.representatives.active,
+    })
     .from(schema.representatives)
     .orderBy(desc(schema.representatives.createdAt));
 
