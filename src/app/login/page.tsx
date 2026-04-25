@@ -11,7 +11,11 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
 
   return (
-    <main className="relative flex min-h-screen bg-[var(--color-bg)]">
+    <main className="relative flex min-h-screen bg-[var(--color-bg)] overflow-hidden">
+      {/* Mobile background animation */}
+      <div className="absolute inset-0 bg-gradient-pan opacity-30 lg:hidden" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-bg)] via-[var(--color-bg)]/80 to-[var(--color-bg)] lg:hidden" />
+
       {/* LEFT: Brand panel */}
       <div className="relative hidden flex-1 overflow-hidden lg:flex lg:flex-col lg:justify-between">
         <div className="absolute inset-0 bg-gradient-pan" />

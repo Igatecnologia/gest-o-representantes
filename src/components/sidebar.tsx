@@ -203,7 +203,7 @@ export function Sidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex flex-col items-center gap-1 rounded-xl px-4 py-1.5 text-[10px] font-medium transition-all duration-150",
+                  "relative flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-medium transition-all duration-150 min-w-0",
                   active
                     ? "text-[var(--color-primary)]"
                     : "text-[var(--color-text-dim)]"
@@ -217,7 +217,7 @@ export function Sidebar({
                   />
                 )}
                 <item.icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_6px_rgba(46,109,180,0.5)]")} />
-                <span>{item.label}</span>
+                <span className="truncate max-w-[56px]">{item.label}</span>
               </Link>
             );
           })}
