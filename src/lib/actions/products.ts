@@ -5,22 +5,25 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { requireUser } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
+import { toCents } from "@/lib/utils";
 
 const productSchema = z.object({
   name: z.string().min(2),
   sku: z.string().optional(),
   price: z.coerce.number().positive(),
+  implementationPrice: z.coerce.number().nonnegative().default(0),
   type: z.enum(["perpetual", "subscription_monthly", "subscription_yearly"]),
   active: z.union([z.literal("on"), z.literal(null), z.literal("")]).optional(),
 });
 
 export async function createProductAction(_prev: unknown, formData: FormData) {
-  await requireUser();
+  await requireAdmin();
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     sku: formData.get("sku") ?? "",
     price: formData.get("price"),
+    implementationPrice: formData.get("implementationPrice") ?? 0,
     type: formData.get("type"),
     active: formData.get("active"),
   });
@@ -32,7 +35,8 @@ export async function createProductAction(_prev: unknown, formData: FormData) {
   await db.insert(schema.products).values({
     name: parsed.data.name,
     sku: parsed.data.sku || null,
-    price: parsed.data.price,
+    price: toCents(parsed.data.price),
+    implementationPrice: toCents(parsed.data.implementationPrice),
     type: parsed.data.type,
     active: parsed.data.active === "on",
   });
@@ -46,11 +50,12 @@ export async function updateProductAction(
   _prev: unknown,
   formData: FormData
 ) {
-  await requireUser();
+  await requireAdmin();
   const parsed = productSchema.safeParse({
     name: formData.get("name"),
     sku: formData.get("sku") ?? "",
     price: formData.get("price"),
+    implementationPrice: formData.get("implementationPrice") ?? 0,
     type: formData.get("type"),
     active: formData.get("active"),
   });
@@ -64,7 +69,8 @@ export async function updateProductAction(
     .set({
       name: parsed.data.name,
       sku: parsed.data.sku || null,
-      price: parsed.data.price,
+      price: toCents(parsed.data.price),
+      implementationPrice: toCents(parsed.data.implementationPrice),
       type: parsed.data.type,
       active: parsed.data.active === "on",
     })
@@ -75,7 +81,7 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData) {
-  await requireUser();
+  await requireAdmin();
   const id = formData.get("id");
   if (typeof id !== "string") return;
   await db.delete(schema.products).where(eq(schema.products.id, id));

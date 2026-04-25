@@ -2,6 +2,16 @@ import { hash } from "bcrypt-ts";
 import { db, schema } from "../lib/db";
 import { eq } from "drizzle-orm";
 
+function requireEnv(name: string): string {
+  const val = process.env[name];
+  if (!val || val.length < 8) {
+    throw new Error(
+      `${name} é obrigatória (mín. 8 chars). Defina via variável de ambiente.`
+    );
+  }
+  return val;
+}
+
 async function ensureUser(params: {
   email: string;
   password: string;
@@ -14,7 +24,10 @@ async function ensureUser(params: {
     .where(eq(schema.users.email, params.email))
     .limit(1);
 
-  if (existing) return existing;
+  if (existing) {
+    console.log(`  [skip] ${params.email} já existe.`);
+    return existing;
+  }
 
   const passwordHash = await hash(params.password, 10);
   const [created] = await db
@@ -36,7 +49,6 @@ async function ensureRep(params: {
   phone: string | null;
   commissionPct: number;
 }) {
-  // Procura por userId se houver, senão por nome
   if (params.userId) {
     const [existing] = await db
       .select()
@@ -61,55 +73,71 @@ async function ensureRep(params: {
 }
 
 async function main() {
-  console.log("Seed iniciado…");
+  console.log("Seed iniciado…\n");
+
+  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@iga.com.br";
+  const adminName = process.env.ADMIN_NAME ?? "Administrador IGA";
+  const adminPw = requireEnv("ADMIN_PASSWORD");
 
   const admin = await ensureUser({
-    email: "redacted@example.com",
-    password: "REDACTED",
-    name: "Administrador",
+    email: adminEmail,
+    password: adminPw,
+    name: adminName,
     role: "admin",
   });
-  console.log("  ✓ Admin:", admin.email);
+  console.log("  Admin:", admin.email);
 
-  const joaoUser = await ensureUser({
-    email: "redacted@example.com",
-    password: "REDACTED",
-    name: "João Silva",
-    role: "rep",
-  });
-  const joaoRep = await ensureRep({
-    userId: joaoUser.id,
-    name: "João Silva",
-    email: "redacted@example.com",
-    phone: "(11) 99999-0001",
-    commissionPct: 10,
-  });
-  console.log("  ✓ Rep 1:", joaoUser.email, "→", joaoRep.name);
+  // Representantes são opcionais — passe REP1_EMAIL + REP1_PASSWORD para criar
+  if (process.env.REP1_EMAIL && process.env.REP1_PASSWORD) {
+    const rep1Pw = requireEnv("REP1_PASSWORD");
+    const rep1Name = process.env.REP1_NAME ?? "Representante 1";
+    const rep1User = await ensureUser({
+      email: process.env.REP1_EMAIL,
+      password: rep1Pw,
+      name: rep1Name,
+      role: "rep",
+    });
+    const rep1 = await ensureRep({
+      userId: rep1User.id,
+      name: rep1Name,
+      email: process.env.REP1_EMAIL,
+      phone: process.env.REP1_PHONE ?? null,
+      commissionPct: Number(process.env.REP1_COMMISSION ?? 10),
+    });
+    console.log("  Rep 1:", rep1User.email, "→", rep1.name);
+  }
 
-  const mariaUser = await ensureUser({
-    email: "redacted@example.com",
-    password: "REDACTED",
-    name: "Maria Santos",
-    role: "rep",
-  });
-  const mariaRep = await ensureRep({
-    userId: mariaUser.id,
-    name: "Maria Santos",
-    email: "redacted@example.com",
-    phone: "(11) 99999-0002",
-    commissionPct: 12,
-  });
-  console.log("  ✓ Rep 2:", mariaUser.email, "→", mariaRep.name);
+  if (process.env.REP2_EMAIL && process.env.REP2_PASSWORD) {
+    const rep2Pw = requireEnv("REP2_PASSWORD");
+    const rep2Name = process.env.REP2_NAME ?? "Representante 2";
+    const rep2User = await ensureUser({
+      email: process.env.REP2_EMAIL,
+      password: rep2Pw,
+      name: rep2Name,
+      role: "rep",
+    });
+    const rep2 = await ensureRep({
+      userId: rep2User.id,
+      name: rep2Name,
+      email: process.env.REP2_EMAIL,
+      phone: process.env.REP2_PHONE ?? null,
+      commissionPct: Number(process.env.REP2_COMMISSION ?? 10),
+    });
+    console.log("  Rep 2:", rep2User.email, "→", rep2.name);
+  }
 
-  console.log("\nSeed concluído. Credenciais:");
-  console.log("  Admin:  redacted@example.com / REDACTED");
-  console.log("  Rep 1:  redacted@example.com / REDACTED");
-  console.log("  Rep 2:  redacted@example.com / REDACTED");
+  console.log("\nSeed concluído com sucesso.");
 }
 
 main()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error(err);
+    console.error("\n✖ Erro no seed:", err.message);
+    console.error("\nUso:");
+    console.error("  ADMIN_PASSWORD=SenhaForte123! npm run db:seed");
+    console.error("\nOpcionais:");
+    console.error("  ADMIN_EMAIL, ADMIN_NAME");
+    console.error("  REP1_EMAIL, REP1_PASSWORD, REP1_NAME, REP1_PHONE, REP1_COMMISSION");
+    console.error("  REP2_EMAIL, REP2_PASSWORD, REP2_NAME, REP2_PHONE, REP2_COMMISSION");
     process.exit(1);
   });

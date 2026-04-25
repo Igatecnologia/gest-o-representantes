@@ -9,4 +9,6 @@ data.db-journal
 *.log
 .DS_Store
 .claude/settings.local.json
+public/sw.js
+public/swe-worker-*.js
 

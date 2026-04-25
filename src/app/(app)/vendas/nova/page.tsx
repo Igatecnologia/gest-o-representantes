@@ -1,5 +1,5 @@
 import { db, schema } from "@/lib/db";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/ui";
 import { SaleForm } from "./form";
 import { requireScope } from "@/lib/auth";
@@ -9,28 +9,29 @@ export const dynamic = "force-dynamic";
 export default async function NewSalePage() {
   const { isAdmin, repId } = await requireScope();
 
-  const repsQuery = db
-    .select({
-      id: schema.representatives.id,
-      name: schema.representatives.name,
-      commissionPct: schema.representatives.commissionPct,
-    })
-    .from(schema.representatives)
-    .where(eq(schema.representatives.active, true))
-    .orderBy(asc(schema.representatives.name));
+  const repFilters = isAdmin
+    ? eq(schema.representatives.active, true)
+    : and(eq(schema.representatives.active, true), eq(schema.representatives.id, repId!));
 
-  const customersQuery = db
-    .select({ id: schema.customers.id, name: schema.customers.name })
-    .from(schema.customers);
+  const customerFilters = isAdmin
+    ? undefined
+    : eq(schema.customers.representativeId, repId!);
 
   const [reps, customers, products] = await Promise.all([
-    // Rep só vê ele próprio na lista (e form esconde select)
-    isAdmin ? repsQuery : repsQuery.where(eq(schema.representatives.id, repId)),
-    isAdmin
-      ? customersQuery.orderBy(asc(schema.customers.name))
-      : customersQuery
-          .where(eq(schema.customers.representativeId, repId))
-          .orderBy(asc(schema.customers.name)),
+    db
+      .select({
+        id: schema.representatives.id,
+        name: schema.representatives.name,
+        commissionPct: schema.representatives.commissionPct,
+      })
+      .from(schema.representatives)
+      .where(repFilters)
+      .orderBy(asc(schema.representatives.name)),
+    db
+      .select({ id: schema.customers.id, name: schema.customers.name })
+      .from(schema.customers)
+      .where(customerFilters)
+      .orderBy(asc(schema.customers.name)),
     db
       .select({
         id: schema.products.id,

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
 import { and, eq } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
+import { toCents } from "@/lib/utils";
 
 const saleSchema = z.object({
   representativeId: z.string().min(1),
@@ -37,7 +38,9 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
   const { representativeId, customerId, productId, quantity, unitPrice, discount, notes } =
     parsed.data;
 
-  const total = Math.max(0, quantity * unitPrice - discount);
+  const unitPriceCents = toCents(unitPrice);
+  const discountCents = toCents(discount);
+  const totalCents = Math.max(0, quantity * unitPriceCents - discountCents);
 
   // Busca comissão % do representante
   const [rep] = await db
@@ -48,7 +51,7 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
 
   if (!rep) return { error: "Representante não encontrado." };
 
-  const commissionAmount = Number(((total * rep.commissionPct) / 100).toFixed(2));
+  const commissionAmount = Math.round((totalCents * rep.commissionPct) / 100);
 
   // Transação: cria venda + comissão
   await db.transaction(async (tx) => {
@@ -59,9 +62,9 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
         customerId,
         productId,
         quantity,
-        unitPrice,
-        discount,
-        total,
+        unitPrice: unitPriceCents,
+        discount: discountCents,
+        total: totalCents,
         status: "approved",
         notes: notes || null,
       })

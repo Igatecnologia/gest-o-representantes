@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
 import { DEAL_STAGES, type DealStage } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
-import { requireScope, requireUser } from "@/lib/auth";
+import { requireScope } from "@/lib/auth";
+import { toCents } from "@/lib/utils";
 
 const STAGES = DEAL_STAGES.map((s) => s.id) as [DealStage, ...DealStage[]];
 
@@ -50,7 +51,7 @@ export async function createDealAction(_prev: unknown, formData: FormData) {
     customerId: d.customerId,
     representativeId: d.representativeId,
     productId: d.productId || null,
-    value: d.value,
+    value: toCents(d.value),
     stage: d.stage,
     probability: d.probability,
     expectedCloseDate: d.expectedCloseDate ? new Date(d.expectedCloseDate) : null,
@@ -111,14 +112,18 @@ export async function deleteDealAction(formData: FormData) {
  * na tabela `sales` e comissão correspondente.
  */
 export async function convertDealToSaleAction(formData: FormData) {
-  await requireUser();
+  const { isAdmin, repId } = await requireScope();
   const dealId = formData.get("dealId");
   if (typeof dealId !== "string") return { error: "ID inválido." };
+
+  const whereClause = isAdmin
+    ? eq(schema.deals.id, dealId)
+    : and(eq(schema.deals.id, dealId), eq(schema.deals.representativeId, repId));
 
   const [deal] = await db
     .select()
     .from(schema.deals)
-    .where(eq(schema.deals.id, dealId))
+    .where(whereClause)
     .limit(1);
 
   if (!deal) return { error: "Deal não encontrado." };
@@ -132,7 +137,8 @@ export async function convertDealToSaleAction(formData: FormData) {
 
   if (!rep) return { error: "Representante não encontrado." };
 
-  const commissionAmount = Number(((deal.value * rep.commissionPct) / 100).toFixed(2));
+  // deal.value já está em centavos no DB
+  const commissionAmount = Math.round((deal.value * rep.commissionPct) / 100);
 
   await db.transaction(async (tx) => {
     const [sale] = await tx

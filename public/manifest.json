@@ -1,12 +1,12 @@
 {
-  "name": "SalesOps — Gestão Comercial",
-  "short_name": "SalesOps",
-  "description": "Sistema de gestão de representantes e vendas de software",
+  "name": "IGA — Gestão de Representantes",
+  "short_name": "IGA",
+  "description": "Sistema de gestão de representantes e vendas — IGA",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#07080a",
-  "theme_color": "#8b5cf6",
+  "background_color": "#06090e",
+  "theme_color": "#2e6db4",
   "lang": "pt-BR",
   "scope": "/",
   "icons": [

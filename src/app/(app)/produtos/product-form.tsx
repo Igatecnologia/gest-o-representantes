@@ -37,7 +37,7 @@ export function ProductForm({
         </div>
 
         <div>
-          <Label htmlFor="price">Preço (R$) *</Label>
+          <Label htmlFor="price">Mensalidade / Valor base (R$) *</Label>
           <Input
             id="price"
             name="price"
@@ -45,7 +45,19 @@ export function ProductForm({
             step="0.01"
             min="0"
             required
-            defaultValue={initial?.price ?? ""}
+            defaultValue={initial ? initial.price / 100 : ""}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="implementationPrice">Implantação (R$)</Label>
+          <Input
+            id="implementationPrice"
+            name="implementationPrice"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={initial ? initial.implementationPrice / 100 : "0"}
           />
         </div>
 

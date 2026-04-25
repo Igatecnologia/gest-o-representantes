@@ -12,7 +12,11 @@ export async function GET(
   }
 
   const { cnpj } = await ctx.params;
-  const result = await fetchCnpj(cnpj);
+  const cleaned = cnpj.replace(/\D/g, "");
+  if (cleaned.length !== 14) {
+    return NextResponse.json({ error: "CNPJ inválido" }, { status: 400 });
+  }
+  const result = await fetchCnpj(cleaned);
   if (!result) {
     return NextResponse.json({ error: "CNPJ inválido ou não encontrado" }, { status: 404 });
   }

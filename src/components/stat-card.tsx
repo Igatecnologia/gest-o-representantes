@@ -3,6 +3,7 @@
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HoverCard } from "./motion";
 
 export function StatCard({
   label,
@@ -26,15 +27,19 @@ export function StatCard({
   const gradientId = `g-${label.replace(/\s+/g, "")}`;
 
   return (
-    <div
+    <HoverCard
       className={cn(
-        "relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5",
-        tone === "primary" && "bg-gradient-brand-subtle"
+        "group relative overflow-hidden rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-5 transition-all duration-300",
+        tone === "primary"
+          ? "border-[color:var(--color-primary)]/20 bg-gradient-brand-subtle shadow-[0_0_24px_-4px_rgba(46,109,180,0.15)]"
+          : "border-[var(--color-border)] card-glow"
       )}
     >
+      {/* Ambient glow */}
       {tone === "primary" && (
-        <div className="pointer-events-none absolute inset-0 opacity-60">
-          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-[var(--color-primary)]/25 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-[var(--color-primary)]/15 blur-3xl glow-pulse" />
+          <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-[var(--color-accent)]/10 blur-3xl glow-pulse" />
         </div>
       )}
 
@@ -44,19 +49,24 @@ export function StatCard({
             {label}
           </span>
           {icon && (
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+            <div className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)]",
+              tone === "primary"
+                ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
+                : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]"
+            )}>
               {icon}
             </div>
           )}
         </div>
 
-        <div className="mt-2 flex items-baseline gap-2">
-          <div className="text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
+        <div className="mt-3 flex items-baseline gap-2">
+          <div className="text-[28px] font-semibold tabular-nums tracking-tight leading-none">{value}</div>
           {typeof delta === "number" && (
             <div
               className={cn(
-                "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium",
-                up ? "bg-emerald-500/12 text-emerald-400" : "bg-red-500/12 text-red-400"
+                "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+                up ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
               )}
             >
               {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
@@ -65,23 +75,23 @@ export function StatCard({
           )}
         </div>
 
-        {hint && <div className="mt-1 text-xs text-[var(--color-text-muted)]">{hint}</div>}
+        {hint && <div className="mt-1.5 text-xs text-[var(--color-text-muted)]">{hint}</div>}
 
         {sparkline && sparkline.length > 1 && (
-          <div className="mt-3 h-10 -mx-1">
+          <div className="mt-4 h-12 -mx-1">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data}>
                 <defs>
                   <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#2e6db4" stopOpacity={0.5} />
+                    <stop offset="100%" stopColor="#2e6db4" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <Area
                   type="monotone"
                   dataKey="v"
-                  stroke="#a78bfa"
-                  strokeWidth={1.5}
+                  stroke="#4a90d9"
+                  strokeWidth={2}
                   fill={`url(#${gradientId})`}
                 />
               </AreaChart>
@@ -89,6 +99,6 @@ export function StatCard({
           </div>
         )}
       </div>
-    </div>
+    </HoverCard>
   );
 }

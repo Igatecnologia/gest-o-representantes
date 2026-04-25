@@ -1,6 +1,6 @@
 import { db, schema } from "@/lib/db";
 import { desc, eq, sql } from "drizzle-orm";
-import { Wallet } from "lucide-react";
+import { Wallet, Download } from "lucide-react";
 import {
   Badge,
   Button,
@@ -78,6 +78,16 @@ export default async function CommissionsPage() {
           isAdmin ? "Controle de comissão por venda" : "Acompanhe o que você tem a receber"
         }
         icon={Wallet}
+        actions={
+          rows.length > 0 ? (
+            <a href="/api/export/comissoes">
+              <Button variant="secondary">
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+            </a>
+          ) : undefined
+        }
       />
 
       <Card className="mb-6">

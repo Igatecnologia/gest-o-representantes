@@ -12,7 +12,11 @@ export async function GET(
   }
 
   const { cep } = await ctx.params;
-  const result = await fetchCep(cep);
+  const cleaned = cep.replace(/\D/g, "");
+  if (cleaned.length !== 8) {
+    return NextResponse.json({ error: "CEP inválido" }, { status: 400 });
+  }
+  const result = await fetchCep(cleaned);
   if (!result) {
     return NextResponse.json({ error: "CEP não encontrado" }, { status: 404 });
   }

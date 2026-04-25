@@ -20,6 +20,7 @@ export function Topbar() {
       <div className="flex h-14 items-center justify-between px-6">
         <button
           onClick={openPalette}
+          aria-label="Abrir paleta de comandos (Ctrl+K)"
           className="group flex w-full max-w-md items-center gap-2.5 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
         >
           <Search className="h-4 w-4" />

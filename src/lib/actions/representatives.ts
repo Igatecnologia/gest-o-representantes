@@ -19,7 +19,7 @@ const repSchema = z.object({
     .union([z.literal("on"), z.literal(null), z.literal("")])
     .optional(),
   loginEmail: z.string().email().optional().or(z.literal("")),
-  loginPassword: z.string().min(6).optional().or(z.literal("")),
+  loginPassword: z.string().min(8).optional().or(z.literal("")),
 });
 
 export async function createRepAction(_prev: unknown, formData: FormData) {

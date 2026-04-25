@@ -11,7 +11,7 @@ import {
   Textarea,
 } from "@/components/ui";
 import { createSaleAction } from "@/lib/actions/sales";
-import { brl } from "@/lib/utils";
+import { brl, toCents } from "@/lib/utils";
 
 type RepOpt = { id: string; name: string; commissionPct: number };
 type NamedOpt = { id: string; name: string };
@@ -35,7 +35,7 @@ export function SaleForm({
 
   const [repId, setRepId] = useState(reps[0]?.id ?? "");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
-  const [unitPrice, setUnitPrice] = useState<number>(products[0]?.price ?? 0);
+  const [unitPrice, setUnitPrice] = useState<number>((products[0]?.price ?? 0) / 100);
   const [quantity, setQuantity] = useState(1);
   const [discount, setDiscount] = useState(0);
 
@@ -112,7 +112,7 @@ export function SaleForm({
               const id = e.target.value;
               setProductId(id);
               const p = products.find((x) => x.id === id);
-              if (p) setUnitPrice(p.price);
+              if (p) setUnitPrice(p.price / 100);
             }}
           >
             {products.map((p) => (
@@ -172,14 +172,14 @@ export function SaleForm({
         <div className="md:col-span-2 grid grid-cols-2 gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 px-4 py-3">
           <div>
             <div className="text-xs text-[var(--color-muted)]">Total da venda</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{brl(total)}</div>
+            <div className="mt-1 text-xl font-semibold tabular-nums">{brl(toCents(total))}</div>
           </div>
           <div className="text-right">
             <div className="text-xs text-[var(--color-muted)]">
               Comissão estimada ({rep?.commissionPct.toFixed(2) ?? 0}%)
             </div>
             <div className="mt-1 text-xl font-semibold tabular-nums text-emerald-400">
-              {brl(commission)}
+              {brl(toCents(commission))}
             </div>
           </div>
         </div>

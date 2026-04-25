@@ -9,8 +9,8 @@ const ALG = "HS256";
 
 function secret() {
   const s = process.env.AUTH_SECRET;
-  if (!s || s.length < 16) {
-    throw new Error("AUTH_SECRET ausente ou muito curto (mínimo 16 chars).");
+  if (!s || s.length < 32) {
+    throw new Error("AUTH_SECRET ausente ou muito curto (mínimo 32 chars).");
   }
   return new TextEncoder().encode(s);
 }
@@ -22,11 +22,13 @@ export type SessionPayload = {
   role: "admin" | "manager" | "rep";
 };
 
+const SESSION_MAX_AGE = 60 * 60 * 24; // 1 dia
+
 export async function createSession(payload: SessionPayload) {
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: ALG })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("1d")
     .sign(secret());
 
   const jar = await cookies();
@@ -35,7 +37,7 @@ export async function createSession(payload: SessionPayload) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: SESSION_MAX_AGE,
   });
 }
 

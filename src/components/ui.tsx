@@ -14,22 +14,22 @@ export const Button = React.forwardRef<
   }
 >(({ className, variant = "primary", size = "md", ...props }, ref) => {
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-primary)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] active:scale-[0.98]";
+    "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] active:scale-[0.97] cursor-pointer";
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_0_0_1px_rgba(139,92,246,0.3)]",
+      "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_2px_8px_-2px_rgba(46,109,180,0.5),0_0_0_1px_rgba(46,109,180,0.3)]",
     secondary:
-      "bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-surface-3)] hover:border-[var(--color-border-strong)]",
+      "bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-surface-3)] hover:border-[var(--color-border-strong)] card-glow",
     outline:
       "bg-transparent text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-2)]",
     ghost:
       "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]",
     danger:
-      "bg-[var(--color-danger)] text-white hover:opacity-90",
+      "bg-[var(--color-danger)] text-white hover:opacity-90 shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)]",
   };
   const sizes: Record<ButtonSize, string> = {
     sm: "h-8 px-3 text-xs",
-    md: "h-9 px-3.5 text-sm",
+    md: "h-9 px-4 text-sm",
     lg: "h-11 px-5 text-sm",
   };
   return (
@@ -51,10 +51,10 @@ export const Input = React.forwardRef<
   <input
     ref={ref}
     className={cn(
-      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none transition-colors",
+      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm outline-none transition-all duration-150",
       "placeholder:text-[var(--color-text-dim)]",
       "hover:border-[var(--color-border-strong)]",
-      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/25",
+      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20 focus:shadow-[0_0_0_1px_rgba(46,109,180,0.3)]",
       "disabled:opacity-50 disabled:cursor-not-allowed",
       className
     )}
@@ -72,10 +72,10 @@ export const Select = React.forwardRef<
   <select
     ref={ref}
     className={cn(
-      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 pr-9 text-sm outline-none transition-colors",
-      "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%237a8296%22 stroke-width=%222%22 viewBox=%220 0 24 24%22><polyline points=%226 9 12 15 18 9%22/></svg>')] bg-[length:16px] bg-[right_0.625rem_center] bg-no-repeat",
+      "w-full appearance-none rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 pr-9 text-sm outline-none transition-all duration-150",
+      "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 fill=%22none%22 stroke=%22%236b7280%22 stroke-width=%222%22 viewBox=%220 0 24 24%22><polyline points=%226 9 12 15 18 9%22/></svg>')] bg-[length:16px] bg-[right_0.625rem_center] bg-no-repeat",
       "hover:border-[var(--color-border-strong)]",
-      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/25",
+      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20",
       className
     )}
     {...props}
@@ -94,10 +94,10 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none transition-colors resize-y",
+      "w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-sm outline-none transition-all duration-150 resize-y",
       "placeholder:text-[var(--color-text-dim)]",
       "hover:border-[var(--color-border-strong)]",
-      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/25",
+      "focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]/20",
       className
     )}
     {...props}
@@ -128,7 +128,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5",
+        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 card-glow",
         className
       )}
       {...props}
@@ -153,7 +153,7 @@ export function PageHeader({
     <div className="mb-8 flex items-end justify-between gap-4">
       <div className="flex items-start gap-3">
         {Icon && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-gradient-brand-subtle border border-[var(--color-border)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-gradient-brand-subtle border border-[var(--color-border)] shadow-[0_0_12px_rgba(46,109,180,0.1)]">
             <Icon className="h-5 w-5 text-[var(--color-primary)]" />
           </div>
         )}
@@ -184,11 +184,11 @@ export function Badge({
 }) {
   const tones: Record<BadgeTone, string> = {
     default: "bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border-[var(--color-border)]",
-    brand: "bg-[color:var(--color-primary)]/12 text-[var(--color-primary)] border-[color:var(--color-primary)]/20",
-    info: "bg-[color:var(--color-accent)]/12 text-[var(--color-accent)] border-[color:var(--color-accent)]/20",
-    success: "bg-emerald-500/12 text-emerald-400 border-emerald-500/20",
-    warning: "bg-amber-500/12 text-amber-400 border-amber-500/20",
-    danger: "bg-red-500/12 text-red-400 border-red-500/20",
+    brand: "bg-[color:var(--color-primary)]/10 text-[var(--color-primary)] border-[color:var(--color-primary)]/20",
+    info: "bg-[color:var(--color-accent)]/10 text-[var(--color-accent)] border-[color:var(--color-accent)]/20",
+    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    danger: "bg-red-500/10 text-red-400 border-red-500/20",
   };
   return (
     <span
@@ -207,7 +207,7 @@ export function Badge({
 
 export function Table({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] card-glow">
       <table className="w-full text-sm">{children}</table>
     </div>
   );
@@ -215,14 +215,14 @@ export function Table({ children }: { children: React.ReactNode }) {
 
 export function THead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="bg-[var(--color-surface-2)] text-left text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
+    <thead className="bg-[var(--color-surface-2)]/60 text-left text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
       {children}
     </thead>
   );
 }
 
 export function TH({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("px-4 py-2.5 font-medium", className)}>{children}</th>;
+  return <th className={cn("px-4 py-3 font-medium", className)}>{children}</th>;
 }
 
 export function TR({
@@ -235,7 +235,7 @@ export function TR({
   return (
     <tr
       className={cn(
-        "border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-2)]/60",
+        "border-t border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-2)]/40",
         className
       )}
     >
@@ -262,9 +262,9 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 px-6 py-12 text-center">
+    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)]/50 px-6 py-14 text-center">
       {Icon && (
-        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
           <Icon className="h-5 w-5" />
         </div>
       )}
@@ -296,13 +296,15 @@ export function Avatar({
   const hue = (name.charCodeAt(0) * 37 + (name.charCodeAt(name.length - 1) || 0) * 13) % 360;
   return (
     <span
+      role="img"
+      aria-label={name}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-semibold text-white",
+        "inline-flex items-center justify-center rounded-full font-semibold text-white ring-2 ring-[var(--color-bg)]",
         sizes[size],
         className
       )}
       style={{
-        background: `linear-gradient(135deg, hsl(${hue} 70% 55%), hsl(${(hue + 60) % 360} 70% 45%))`,
+        background: `linear-gradient(135deg, hsl(${hue} 60% 50%), hsl(${(hue + 50) % 360} 60% 40%))`,
       }}
     >
       {init || "?"}

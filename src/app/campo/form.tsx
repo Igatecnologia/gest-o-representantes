@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createFieldCustomerAction } from "@/lib/actions/field";
 import { maskCep, maskCnpj, maskPhone } from "@/lib/utils";
@@ -15,6 +15,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import Link from "next/link";
+import { ScaleSpring, FadeUp } from "@/components/motion";
 
 const initial: { error?: string; ok?: boolean } = {};
 
@@ -66,8 +67,36 @@ export function FieldForm() {
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setF((prev) => ({ ...prev, [k]: v }));
 
+  const restored = useRef(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("iga-campo-draft");
+      if (saved) {
+        const parsed = JSON.parse(saved) as Form;
+        if (parsed.name || parsed.document || parsed.phone) {
+          setF(parsed);
+          restored.current = true;
+          toast.info("Rascunho restaurado");
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  // Auto-save draft (debounced 500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (f.name || f.document || f.phone) {
+        localStorage.setItem("iga-campo-draft", JSON.stringify(f));
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [f]);
+
   useEffect(() => {
     if (state.ok) {
+      localStorage.removeItem("iga-campo-draft");
       setSuccess(true);
       toast.success("Cliente cadastrado em campo!");
     }
@@ -149,16 +178,21 @@ export function FieldForm() {
   if (success) {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand shadow-[0_0_48px_rgba(139,92,246,0.5)]">
-          <CheckCircle2 className="h-10 w-10 text-white" />
-        </div>
-        <h1 className="mb-2 text-2xl font-semibold">Cliente cadastrado!</h1>
-        <p className="mb-8 text-sm text-[var(--color-text-muted)]">
-          Os dados foram enviados com sucesso.
-        </p>
-        <div className="flex w-full flex-col gap-2">
+        <ScaleSpring>
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand shadow-[0_0_48px_rgba(139,92,246,0.5)]">
+            <CheckCircle2 className="h-10 w-10 text-white" />
+          </div>
+        </ScaleSpring>
+        <FadeUp delay={0.15}>
+          <h1 className="mb-2 text-2xl font-semibold">Cliente cadastrado!</h1>
+          <p className="mb-8 text-sm text-[var(--color-text-muted)]">
+            Os dados foram enviados com sucesso.
+          </p>
+        </FadeUp>
+        <FadeUp delay={0.3} className="flex w-full flex-col gap-2">
           <button
             onClick={() => {
+              localStorage.removeItem("iga-campo-draft");
               setF(empty);
               setSuccess(false);
               setGpsOk(false);
@@ -173,7 +207,7 @@ export function FieldForm() {
           >
             Voltar ao painel
           </Link>
-        </div>
+        </FadeUp>
       </div>
     );
   }

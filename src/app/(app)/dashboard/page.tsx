@@ -25,8 +25,12 @@ import {
   Users,
   ArrowRight,
   Trophy,
+  MapPin,
+  Kanban,
+  Target,
 } from "lucide-react";
 import { requireScope } from "@/lib/auth";
+import { DashboardShell, CommissionProgress, QuickActions, TopCustomers } from "./client";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +117,21 @@ export default async function DashboardPage() {
     .from(schema.commissions)
     .where(scopeCommissions(eq(schema.commissions.status, "paid")));
 
+  // Commission paid THIS month (for rep progress bar)
+  const [commissionsPaidThisMonth] = await db
+    .select({
+      total: sql<number>`coalesce(sum(${schema.commissions.amount}), 0)`,
+    })
+    .from(schema.commissions)
+    .where(
+      scopeCommissions(
+        and(
+          eq(schema.commissions.status, "paid"),
+          gte(schema.commissions.paidAt, firstOfMonth)
+        )
+      )
+    );
+
   const [customerCount] = await db
     .select({ count: sql<number>`count(*)` })
     .from(schema.customers)
@@ -141,7 +160,7 @@ export default async function DashboardPage() {
 
   const sparkSales = daily.map((d) => d.total);
 
-  // Ranking: admin vê todos; rep vê comparação limitada (posição dele entre todos)
+  // Ranking (admin) or top customers (rep)
   const rankingQuery = db
     .select({
       repId: schema.representatives.id,
@@ -165,6 +184,29 @@ export default async function DashboardPage() {
   const ranking = await rankingQuery;
   const rankingTop = ranking[0]?.totalSales ?? 0;
 
+  // Top 3 customers for rep
+  let topCustomers: { id: string; name: string; total: number }[] = [];
+  if (!isAdmin && repId) {
+    topCustomers = await db
+      .select({
+        id: schema.customers.id,
+        name: schema.customers.name,
+        total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
+      })
+      .from(schema.sales)
+      .innerJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
+      .where(
+        and(
+          eq(schema.sales.representativeId, repId),
+          eq(schema.sales.status, "approved"),
+          gte(schema.sales.createdAt, firstOfMonth)
+        )
+      )
+      .groupBy(schema.customers.id)
+      .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
+      .limit(3);
+  }
+
   const recentSales = await db
     .select({
       id: schema.sales.id,
@@ -187,7 +229,7 @@ export default async function DashboardPage() {
     .limit(6);
 
   return (
-    <>
+    <DashboardShell>
       <PageHeader
         title={isAdmin ? "Dashboard" : `Olá, ${session.name.split(" ")[0]}`}
         description={
@@ -232,6 +274,19 @@ export default async function DashboardPage() {
           icon={<Users className="h-3.5 w-3.5" />}
         />
       </div>
+
+      {/* Quick Actions — só para rep */}
+      {!isAdmin && (
+        <QuickActions />
+      )}
+
+      {/* Commission Progress — só para rep */}
+      {!isAdmin && (
+        <CommissionProgress
+          paidThisMonth={commissionsPaidThisMonth?.total ?? 0}
+          pending={commissionsPending?.total ?? 0}
+        />
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -308,10 +363,19 @@ export default async function DashboardPage() {
             )}
           </Card>
         ) : (
-          <Card>
-            <h2 className="mb-4 text-sm font-semibold">Meu progresso</h2>
-            <RepOwnSummary repId={repId} />
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
+                <Target className="h-4 w-4 text-[var(--color-primary)]" />
+                Meu progresso
+              </h2>
+              <RepOwnSummary repId={repId!} />
+            </Card>
+
+            {topCustomers.length > 0 && (
+              <TopCustomers customers={topCustomers} />
+            )}
+          </div>
         )}
       </div>
 
@@ -373,7 +437,7 @@ export default async function DashboardPage() {
           )}
         </Card>
       </div>
-    </>
+    </DashboardShell>
   );
 }
 
@@ -382,25 +446,32 @@ async function RepOwnSummary({ repId }: { repId: string }) {
     .select({
       open: sql<number>`count(case when ${schema.deals.stage} not in ('won','lost') then 1 end)`,
       won: sql<number>`count(case when ${schema.deals.stage} = 'won' then 1 end)`,
+      lost: sql<number>`count(case when ${schema.deals.stage} = 'lost' then 1 end)`,
       openValue: sql<number>`coalesce(sum(case when ${schema.deals.stage} not in ('won','lost') then ${schema.deals.value} else 0 end), 0)`,
     })
     .from(schema.deals)
     .where(eq(schema.deals.representativeId, repId));
 
+  const wonCount = deals?.won ?? 0;
+  const lostCount = deals?.lost ?? 0;
+  const closedTotal = wonCount + lostCount;
+  const winRate = closedTotal > 0 ? Math.round((wonCount / closedTotal) * 100) : null;
+
   const items = [
     { label: "Negócios abertos", value: String(deals?.open ?? 0) },
-    { label: "Ganhos no total", value: String(deals?.won ?? 0) },
+    { label: "Ganhos no total", value: String(wonCount) },
     { label: "Pipeline em aberto", value: brl(deals?.openValue ?? 0) },
+    { label: "Taxa de conversão", value: winRate !== null ? `${winRate}%` : "—" },
   ];
 
   return (
-    <dl className="space-y-3">
+    <dl className="space-y-2">
       {items.map((it) => (
         <div
           key={it.label}
-          className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-3 py-2"
+          className="flex items-center justify-between rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-3 py-2.5"
         >
-          <dt className="text-sm text-[var(--color-text-muted)]">{it.label}</dt>
+          <dt className="text-xs text-[var(--color-text-muted)]">{it.label}</dt>
           <dd className="text-sm font-semibold tabular-nums">{it.value}</dd>
         </div>
       ))}

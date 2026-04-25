@@ -5,13 +5,13 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SalesOps — Gestão de Representantes",
-  description: "Sistema interno de gestão de representantes de venda de software",
+  title: "IGA — Gestão de Representantes",
+  description: "Sistema de gestão de representantes e vendas — IGA",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SalesOps",
+    title: "IGA",
   },
   icons: {
     icon: [{ url: "/icons/icon-192.svg", type: "image/svg+xml" }],
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07080a",
+  themeColor: "#06090e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

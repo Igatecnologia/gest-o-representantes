@@ -14,7 +14,7 @@ export default async function AppLayout({
       <Sidebar userName={user.name} role={user.role} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 px-8 py-8">{children}</main>
+        <main className="flex-1 px-4 py-4 pb-20 md:px-8 md:py-8 md:pb-8">{children}</main>
       </div>
       <CommandPalette role={user.role} />
     </div>

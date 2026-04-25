@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db, schema } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { requireScope } from "@/lib/auth";
 
 const fieldCustomerSchema = z.object({
   name: z.string().min(2),
@@ -27,7 +27,7 @@ export async function createFieldCustomerAction(
   _prev: unknown,
   formData: FormData
 ) {
-  await requireUser();
+  const { repId } = await requireScope();
   const raw = Object.fromEntries(formData.entries());
   const parsed = fieldCustomerSchema.safeParse({
     name: raw.name,
@@ -55,6 +55,7 @@ export async function createFieldCustomerAction(
 
   await db.insert(schema.customers).values({
     name: d.name,
+    representativeId: repId,
     tradeName: d.tradeName || null,
     document: d.document || null,
     email: d.email || null,

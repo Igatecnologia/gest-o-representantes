@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { and, desc, eq } from "drizzle-orm";
-import { Receipt, Plus, X } from "lucide-react";
+import { Receipt, Plus, X, Download } from "lucide-react";
 import {
   Avatar,
   Badge,
@@ -53,12 +53,22 @@ export default async function SalesPage() {
         description={`${sales.length} venda(s) registrada(s)`}
         icon={Receipt}
         actions={
-          <Link href="/vendas/nova">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nova venda
-            </Button>
-          </Link>
+          <>
+            {sales.length > 0 && (
+              <a href="/api/export/vendas">
+                <Button variant="secondary">
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              </a>
+            )}
+            <Link href="/vendas/nova">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nova venda
+              </Button>
+            </Link>
+          </>
         }
       />
 

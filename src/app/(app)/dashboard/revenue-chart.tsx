@@ -19,18 +19,23 @@ export function RevenueChart({ data }: { data: Point[] }) {
       <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
+            <stop offset="0%" stopColor="#2e6db4" stopOpacity={0.35} />
+            <stop offset="50%" stopColor="#2e6db4" stopOpacity={0.1} />
+            <stop offset="100%" stopColor="#2e6db4" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#2e6db4" />
+            <stop offset="100%" stopColor="#7bb3e0" />
           </linearGradient>
         </defs>
         <CartesianGrid
-          stroke="#1f2430"
+          stroke="#1a1f2e"
           strokeDasharray="3 3"
           vertical={false}
         />
         <XAxis
           dataKey="day"
-          tick={{ fill: "#7a8296", fontSize: 11 }}
+          tick={{ fill: "#6b7280", fontSize: 11 }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v) => {
@@ -43,7 +48,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
           minTickGap={30}
         />
         <YAxis
-          tick={{ fill: "#7a8296", fontSize: 11 }}
+          tick={{ fill: "#6b7280", fontSize: 11 }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v) =>
@@ -52,15 +57,16 @@ export function RevenueChart({ data }: { data: Point[] }) {
           width={48}
         />
         <Tooltip
-          cursor={{ stroke: "#2a3142", strokeWidth: 1 }}
+          cursor={{ stroke: "#262d40", strokeWidth: 1 }}
           contentStyle={{
-            background: "#151922",
-            border: "1px solid #2a3142",
-            borderRadius: 10,
-            fontSize: 12,
+            background: "#12151e",
+            border: "1px solid #262d40",
+            borderRadius: 12,
+            fontSize: 13,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
           }}
-          labelStyle={{ color: "#7a8296", marginBottom: 4 }}
-          formatter={(value: number) => [brl(value), "Vendas"]}
+          labelStyle={{ color: "#6b7280", marginBottom: 6, fontSize: 11 }}
+          formatter={(value) => [brl(Number(value)), "Vendas"]}
           labelFormatter={(v) => {
             const d = new Date(v);
             return d.toLocaleDateString("pt-BR", {
@@ -72,8 +78,8 @@ export function RevenueChart({ data }: { data: Point[] }) {
         <Area
           type="monotone"
           dataKey="total"
-          stroke="#a78bfa"
-          strokeWidth={2}
+          stroke="url(#strokeGradient)"
+          strokeWidth={2.5}
           fill="url(#revenueGradient)"
         />
       </AreaChart>

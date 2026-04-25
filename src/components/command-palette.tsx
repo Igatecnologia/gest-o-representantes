@@ -11,6 +11,7 @@ import {
   Receipt,
   Wallet,
   Kanban,
+  FileText,
   Plus,
   LogOut,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV_ALL = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, adminOnly: false },
   { label: "Pipeline", href: "/pipeline", icon: Kanban, adminOnly: false },
   { label: "Clientes", href: "/clientes", icon: Building2, adminOnly: false },
+  { label: "Propostas", href: "/propostas", icon: FileText, adminOnly: false },
   { label: "Representantes", href: "/representantes", icon: Users, adminOnly: true },
   { label: "Produtos", href: "/produtos", icon: Package, adminOnly: true },
   { label: "Vendas", href: "/vendas", icon: Receipt, adminOnly: false },
@@ -29,6 +31,7 @@ const NAV_ALL = [
 const CREATE_ALL = [
   { label: "Novo negócio (pipeline)", href: "/pipeline/novo", icon: Plus, adminOnly: false },
   { label: "Novo cliente", href: "/clientes/novo", icon: Plus, adminOnly: false },
+  { label: "Nova proposta", href: "/propostas/nova", icon: Plus, adminOnly: false },
   { label: "Nova venda", href: "/vendas/nova", icon: Plus, adminOnly: false },
   { label: "Novo representante", href: "/representantes/novo", icon: Plus, adminOnly: true },
   { label: "Novo produto", href: "/produtos/novo", icon: Plus, adminOnly: true },
@@ -65,6 +68,9 @@ export function CommandPalette({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Paleta de comandos"
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-[10vh] backdrop-blur-sm"
       onClick={() => setOpen(false)}
     >
@@ -75,6 +81,7 @@ export function CommandPalette({
         <Command className="flex flex-col" loop>
           <div className="border-b border-[var(--color-border)]">
             <Command.Input
+              aria-label="Buscar comandos"
               placeholder="Buscar ou executar uma ação..."
               className="w-full bg-transparent px-4 py-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)] outline-none"
             />

@@ -5,18 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function brl(value: number): string {
+/** Formata centavos como BRL (ex: 150050 → "R$ 1.500,50") */
+export function brl(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(cents / 100);
 }
 
-export function compact(value: number): string {
+/** Formata centavos em notação compacta (ex: 150000 → "1,5 mil") */
+export function compact(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
     notation: "compact",
     maximumFractionDigits: 1,
-  }).format(value);
+  }).format(cents / 100);
+}
+
+/** Converte reais (float) para centavos (integer) */
+export function toCents(reais: number): number {
+  return Math.round(reais * 100);
 }
 
 export function dateShort(d: Date | number | null | undefined): string {
@@ -73,4 +80,13 @@ export function maskPhone(raw: string): string {
   return d
     .replace(/^(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d)/, "$1-$2");
+}
+
+/** Escapa campo CSV contra formula injection (=, +, -, @, \t, \r) */
+export function csvSafe(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  if (/^[=+\-@\t\r]/.test(escaped)) {
+    return `"'${escaped}"`;
+  }
+  return escaped.includes(";") ? `"${escaped}"` : escaped;
 }

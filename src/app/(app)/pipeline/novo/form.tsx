@@ -92,7 +92,7 @@ export function NewDealForm({
               const id = e.target.value;
               setProductId(id);
               const p = products.find((x) => x.id === id);
-              if (p) setValue(p.price);
+              if (p) setValue(p.price / 100);
             }}
           >
             <option value="">— nenhum —</option>
