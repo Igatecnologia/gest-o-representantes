@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { brl, dateShort } from "@/lib/utils";
 import {
@@ -51,28 +51,30 @@ export default async function PropostasPage() {
     .where(where)
     .orderBy(desc(schema.proposals.createdAt));
 
-  // Buscar itens apenas das propostas visíveis pelo usuário
-  const proposalIds = proposals.map((p) => p.id);
-  const itemTotals = proposalIds.length > 0
-    ? await db
-        .select({
-          proposalId: schema.proposalItems.proposalId,
-          total: schema.proposalItems.value,
-          type: schema.proposalItems.type,
-        })
-        .from(schema.proposalItems)
-        .where(inArray(schema.proposalItems.proposalId, proposalIds))
-    : [];
-
+  // Buscar totais com aggregation numa unica query
   const totalsMap = new Map<string, { oneTime: number; monthly: number }>();
-  for (const item of itemTotals) {
-    const cur = totalsMap.get(item.proposalId) ?? { oneTime: 0, monthly: 0 };
-    if (item.type === "monthly") {
-      cur.monthly += item.total;
-    } else {
-      cur.oneTime += item.total;
+
+  try {
+    const itemAgg = await db
+      .select({
+        proposalId: schema.proposalItems.proposalId,
+        type: schema.proposalItems.type,
+        sum: sql<number>`coalesce(sum(${schema.proposalItems.value}), 0)`,
+      })
+      .from(schema.proposalItems)
+      .groupBy(schema.proposalItems.proposalId, schema.proposalItems.type);
+
+    for (const row of itemAgg) {
+      const cur = totalsMap.get(row.proposalId) ?? { oneTime: 0, monthly: 0 };
+      if (row.type === "monthly") {
+        cur.monthly = row.sum;
+      } else {
+        cur.oneTime += row.sum;
+      }
+      totalsMap.set(row.proposalId, cur);
     }
-    totalsMap.set(item.proposalId, cur);
+  } catch (err) {
+    console.error("[propostas] Erro ao buscar totais:", err);
   }
 
   return (
