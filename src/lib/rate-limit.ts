@@ -1,8 +1,8 @@
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+const DEFAULT_MAX_ATTEMPTS = 5;
+const DEFAULT_WINDOW_MS = 15 * 60 * 1000; // 15 minutos
 
 let tableReady = false;
 
@@ -18,10 +18,16 @@ async function ensureTable() {
   tableReady = true;
 }
 
-export async function checkRateLimit(key: string): Promise<{
+export async function checkRateLimit(
+  key: string,
+  opts?: { maxAttempts?: number; windowMs?: number }
+): Promise<{
   blocked: boolean;
   retryAfterSeconds: number;
 }> {
+  const maxAttempts = opts?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const windowMs = opts?.windowMs ?? DEFAULT_WINDOW_MS;
+
   await ensureTable();
   const now = Date.now();
 
@@ -35,7 +41,7 @@ export async function checkRateLimit(key: string): Promise<{
 
   if (!row) {
     await db.run(
-      sql`INSERT INTO _rate_limit (key, count, reset_at) VALUES (${key}, 1, ${now + WINDOW_MS})`
+      sql`INSERT INTO _rate_limit (key, count, reset_at) VALUES (${key}, 1, ${now + windowMs})`
     );
     return { blocked: false, retryAfterSeconds: 0 };
   }
@@ -45,7 +51,7 @@ export async function checkRateLimit(key: string): Promise<{
     sql`UPDATE _rate_limit SET count = ${newCount} WHERE key = ${key}`
   );
 
-  if (newCount > MAX_ATTEMPTS) {
+  if (newCount > maxAttempts) {
     const retryAfterSeconds = Math.ceil((Number(row.reset_at) - now) / 1000);
     return { blocked: true, retryAfterSeconds: Math.max(0, retryAfterSeconds) };
   }

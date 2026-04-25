@@ -2,9 +2,18 @@ import { db, schema } from "@/lib/db";
 import { desc, eq } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { brl, dateShort, csvSafe } from "@/lib/utils";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET() {
-  const { isAdmin, repId } = await requireScope();
+  const { isAdmin, repId, session } = await requireScope();
+
+  const { blocked } = await checkRateLimit(`export-comissoes:${session.sub}`, {
+    maxAttempts: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) {
+    return new Response("Muitas requisições. Aguarde.", { status: 429 });
+  }
 
   const where = isAdmin ? undefined : eq(schema.commissions.representativeId, repId!);
 

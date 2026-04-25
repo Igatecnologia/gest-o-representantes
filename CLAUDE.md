@@ -65,9 +65,7 @@ src/
 - `rep`: ve apenas seus proprios dados (clientes, vendas, comissoes, propostas)
 
 ## Deploy
-- **Plataforma**: Vercel
-- **Project ID**: prj_BBquUnSFJ3fjGOwomrBcSEUHpkV6
-- **Org**: team_CKineqTPz03S69dUEjHuE8tK
+- **Plataforma**: Vercel (config em .vercel/project.json)
 - **Env vars obrigatorias em prod**: AUTH_SECRET, DATABASE_URL, DATABASE_AUTH_TOKEN
 - **Env vars para seed**: ADMIN_PASSWORD, ADMIN_EMAIL, ADMIN_NAME
 

@@ -67,6 +67,15 @@ const changePasswordSchema = z.object({
 export async function changePasswordAction(_prev: unknown, formData: FormData) {
   const session = await requireUser();
 
+  const { blocked, retryAfterSeconds } = await checkRateLimit(
+    `chgpwd:${session.sub}`,
+    { maxAttempts: 5, windowMs: 10 * 60_000 }
+  );
+  if (blocked) {
+    const minutes = Math.ceil(retryAfterSeconds / 60);
+    return { error: `Muitas tentativas. Aguarde ${minutes} minuto(s).` };
+  }
+
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
     newPassword: formData.get("newPassword"),

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { brl, dateShort } from "@/lib/utils";
 import {
@@ -51,13 +51,18 @@ export default async function PropostasPage() {
     .where(where)
     .orderBy(desc(schema.proposals.createdAt));
 
-  const itemTotals = await db
-    .select({
-      proposalId: schema.proposalItems.proposalId,
-      total: schema.proposalItems.value,
-      type: schema.proposalItems.type,
-    })
-    .from(schema.proposalItems);
+  // Buscar itens apenas das propostas visíveis pelo usuário
+  const proposalIds = proposals.map((p) => p.id);
+  const itemTotals = proposalIds.length > 0
+    ? await db
+        .select({
+          proposalId: schema.proposalItems.proposalId,
+          total: schema.proposalItems.value,
+          type: schema.proposalItems.type,
+        })
+        .from(schema.proposalItems)
+        .where(sql`${schema.proposalItems.proposalId} IN (${sql.join(proposalIds.map(id => sql`${id}`), sql`, `)})`)
+    : [];
 
   const totalsMap = new Map<string, { oneTime: number; monthly: number }>();
   for (const item of itemTotals) {
