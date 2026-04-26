@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Search } from "lucide-react";
 import { Kbd } from "./ui";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Topbar() {
   const openPalette = () => {
@@ -31,14 +32,15 @@ export function Topbar() {
           </div>
         </button>
 
-        <div className="ml-4 flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <span className="hidden md:inline">
+        <div className="ml-4 flex items-center gap-3">
+          <span className="hidden text-xs text-[var(--color-text-muted)] md:inline">
             {new Intl.DateTimeFormat("pt-BR", {
               weekday: "long",
               day: "2-digit",
               month: "long",
             }).format(new Date())}
           </span>
+          <ThemeToggle />
         </div>
       </div>
     </header>
