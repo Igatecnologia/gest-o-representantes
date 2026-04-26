@@ -53,7 +53,7 @@ export async function createFieldCustomerAction(
 
   const d = parsed.data;
 
-  await db.insert(schema.customers).values({
+  const [customer] = await db.insert(schema.customers).values({
     name: d.name,
     representativeId: repId,
     tradeName: d.tradeName || null,
@@ -71,8 +71,21 @@ export async function createFieldCustomerAction(
     longitude: d.longitude ?? null,
     notes: d.notes || null,
     source: "mobile_field",
-  });
+  }).returning();
+
+  // Cria deal automático no pipeline como "lead"
+  if (repId) {
+    await db.insert(schema.deals).values({
+      title: `Lead — ${d.name}`,
+      customerId: customer.id,
+      representativeId: repId,
+      value: 0,
+      stage: "lead",
+      probability: 10,
+    });
+  }
 
   revalidatePath("/clientes");
+  revalidatePath("/pipeline");
   return { ok: true };
 }

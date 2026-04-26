@@ -55,7 +55,7 @@ export async function createCustomerAction(_prev: unknown, formData: FormData) {
   // Rep sempre cadastra em nome próprio; admin pode atribuir (ou deixar vazio)
   const ownerRepId = isAdmin ? d.representativeId || null : repId;
 
-  await db.insert(schema.customers).values({
+  const [customer] = await db.insert(schema.customers).values({
     representativeId: ownerRepId,
     name: d.name,
     tradeName: d.tradeName || null,
@@ -71,7 +71,20 @@ export async function createCustomerAction(_prev: unknown, formData: FormData) {
     state: d.state || null,
     notes: d.notes || null,
     source: "web",
-  });
+  }).returning();
+
+  // Cria deal automático no pipeline como "lead"
+  if (ownerRepId) {
+    await db.insert(schema.deals).values({
+      title: `Lead — ${d.name}`,
+      customerId: customer.id,
+      representativeId: ownerRepId,
+      value: 0,
+      stage: "lead",
+      probability: 10,
+    });
+    revalidatePath("/pipeline");
+  }
 
   revalidatePath("/clientes");
   redirect("/clientes");

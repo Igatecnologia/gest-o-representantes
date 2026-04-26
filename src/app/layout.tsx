@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     title: "IGA",
   },
   icons: {
-    icon: [{ url: "/icons/icon-192.svg", type: "image/svg+xml" }],
-    apple: "/icons/icon-192.svg",
+    icon: [{ url: "/logo-iga.png", type: "image/png" }],
+    apple: "/logo-iga.png",
   },
 };
 
