@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { Button, Card, Input, Label, Select, Textarea, Badge } from "@/components/ui";
 import { brl, toCents } from "@/lib/utils";
 import { createProposalAction } from "@/lib/actions/proposals";
@@ -50,6 +51,8 @@ export function ProposalForm({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [dirty, setDirty] = useState(false);
+  useUnsavedWarning(dirty && !isPending);
 
   const [customerId, setCustomerId] = useState("");
   const [productId, setProductId] = useState("");
@@ -205,7 +208,7 @@ export function ProposalForm({
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-6" onChange={() => setDirty(true)}>
       <Card>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>

@@ -4,8 +4,9 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, count } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 const customerSchema = z.object({
   name: z.string().min(2, "Nome muito curto"),
@@ -146,13 +147,28 @@ export async function updateCustomerAction(
 }
 
 export async function deleteCustomerAction(formData: FormData) {
-  const { repId, isAdmin } = await requireScope();
+  const { session, repId, isAdmin } = await requireScope();
   const id = formData.get("id");
-  if (typeof id !== "string") return;
+  if (typeof id !== "string") return { error: "ID inválido." };
+
+  // Verificar dependências antes de deletar
+  const [[salesCount], [proposalsCount], [dealsCount]] = await Promise.all([
+    db.select({ total: count() }).from(schema.sales).where(eq(schema.sales.customerId, id)),
+    db.select({ total: count() }).from(schema.proposals).where(eq(schema.proposals.customerId, id)),
+    db.select({ total: count() }).from(schema.deals).where(eq(schema.deals.customerId, id)),
+  ]);
+
+  const deps: string[] = [];
+  if (salesCount.total > 0) deps.push(`${salesCount.total} venda(s)`);
+  if (proposalsCount.total > 0) deps.push(`${proposalsCount.total} proposta(s)`);
+  if (dealsCount.total > 0) deps.push(`${dealsCount.total} negócio(s)`);
+
+  if (deps.length > 0) {
+    return { error: `Não é possível excluir: cliente possui ${deps.join(", ")}.` };
+  }
 
   if (!isAdmin) {
-    // Rep só apaga os próprios
-    await db
+    const result = await db
       .delete(schema.customers)
       .where(
         and(
@@ -160,8 +176,13 @@ export async function deleteCustomerAction(formData: FormData) {
           eq(schema.customers.representativeId, repId)
         )
       );
+    if (result.rowsAffected === 0) {
+      return { error: "Você não tem permissão para excluir este cliente." };
+    }
   } else {
     await db.delete(schema.customers).where(eq(schema.customers.id, id));
   }
+
+  await audit(session, "delete", "customer", id);
   revalidatePath("/clientes");
 }

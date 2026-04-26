@@ -64,6 +64,7 @@ export const customers = sqliteTable("customers", {
   createdAt: createdAt(),
 }, (t) => [
   index("idx_customers_rep").on(t.representativeId),
+  index("idx_customers_name").on(t.name),
 ]);
 
 export const products = sqliteTable("products", {
@@ -76,7 +77,9 @@ export const products = sqliteTable("products", {
   type: text("type").notNull().default("perpetual"),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: createdAt(),
-});
+}, (t) => [
+  index("idx_products_name").on(t.name),
+]);
 
 export const sales = sqliteTable("sales", {
   id: id(),
@@ -190,6 +193,21 @@ export const proposalItems = sqliteTable("proposal_items", {
   index("idx_proposal_items_proposal").on(t.proposalId),
 ]);
 
+export const auditLogs = sqliteTable("audit_logs", {
+  id: id(),
+  userId: text("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  action: text("action").notNull(), // delete, cancel, status_change, create, update
+  entity: text("entity").notNull(), // customer, representative, product, sale, commission, deal, proposal
+  entityId: text("entity_id").notNull(),
+  details: text("details"), // JSON com detalhes adicionais
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_audit_user").on(t.userId),
+  index("idx_audit_entity").on(t.entity, t.entityId),
+  index("idx_audit_created").on(t.createdAt),
+]);
+
 export type User = typeof users.$inferSelect;
 export type Representative = typeof representatives.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
@@ -199,6 +217,7 @@ export type Commission = typeof commissions.$inferSelect;
 export type Deal = typeof deals.$inferSelect;
 export type Proposal = typeof proposals.$inferSelect;
 export type ProposalItem = typeof proposalItems.$inferSelect;
+export type AuditLog = typeof auditLogs.$inferSelect;
 
 export const DEAL_STAGES = [
   { id: "lead", label: "Lead", probability: 10 },

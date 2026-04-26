@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Building2, MapPin, Eye, Trash2 } from "lucide-react";
 import {
@@ -32,37 +33,52 @@ type CustomerRow = {
   repName: string | null;
 };
 
+const PER_PAGE = 20;
+
 export function CustomerList({
   customers,
   isAdmin,
+  total,
+  page,
+  search,
 }: {
   customers: CustomerRow[];
   isAdmin: boolean;
+  total: number;
+  page: number;
+  search: string;
 }) {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const pathname = usePathname();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const PER_PAGE = 20;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const q = search.toLowerCase();
-  const allFiltered = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(q) ||
-      (c.tradeName?.toLowerCase().includes(q) ?? false) ||
-      (c.document?.includes(q) ?? false) ||
-      (c.city?.toLowerCase().includes(q) ?? false) ||
-      (c.email?.toLowerCase().includes(q) ?? false)
-  );
-  const filtered = allFiltered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  function navigate(newPage: number, newSearch?: string) {
+    const s = newSearch ?? search;
+    const params = new URLSearchParams();
+    if (s) params.set("q", s);
+    if (newPage > 1) params.set("page", String(newPage));
+    const qs = params.toString();
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigate(1, value), 300);
+  }
 
   async function handleDelete() {
     if (!deleteId) return;
     setDeleting(true);
     const fd = new FormData();
     fd.set("id", deleteId);
-    await deleteCustomerAction(fd);
-    toast.success("Cliente excluido com sucesso");
+    const result = await deleteCustomerAction(fd);
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Cliente excluído com sucesso");
+    }
     setDeleteId(null);
     setDeleting(false);
   }
@@ -71,13 +87,13 @@ export function CustomerList({
     <>
       <div className="mb-4">
         <SearchInput
-          value={search}
-          onChange={(v) => { setSearch(v); setPage(1); }}
+          defaultValue={search}
+          onChange={handleSearch}
           placeholder="Buscar por nome, CNPJ, cidade, e-mail..."
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {customers.length === 0 ? (
         <EmptyState
           title={search ? "Nenhum resultado" : "Nenhum cliente cadastrado"}
           hint={search ? `Nenhum cliente encontrado para "${search}"` : "Cadastre o primeiro cliente."}
@@ -103,7 +119,7 @@ export function CustomerList({
             </tr>
           </THead>
           <tbody>
-            {filtered.map((c) => (
+            {customers.map((c) => (
               <TR key={c.id}>
                 <TD>
                   <Link href={`/clientes/${c.id}`} className="flex items-center gap-3 hover:opacity-80">
@@ -159,7 +175,7 @@ export function CustomerList({
         </Table>
       )}
 
-      <Pagination total={allFiltered.length} page={page} perPage={PER_PAGE} onChange={(p) => setPage(p)} />
+      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate(p)} />
 
       <ConfirmDialog
         open={!!deleteId}

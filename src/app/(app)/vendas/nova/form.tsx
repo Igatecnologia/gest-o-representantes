@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import {
   Button,
   Card,
@@ -32,6 +33,8 @@ export function SaleForm({
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(createSaleAction, initial);
+  const [dirty, setDirty] = useState(false);
+  useUnsavedWarning(dirty && !pending);
 
   const [repId, setRepId] = useState(reps[0]?.id ?? "");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
@@ -61,7 +64,7 @@ export function SaleForm({
 
   return (
     <Card className="max-w-3xl">
-      <form action={action} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <form action={action} onChange={() => setDirty(true)} className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {isAdmin ? (
           <div>
             <Label htmlFor="representativeId">Representante *</Label>

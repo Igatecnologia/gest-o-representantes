@@ -67,8 +67,12 @@ export function ProductList({ products }: { products: ProductRow[] }) {
     setDeleting(true);
     const fd = new FormData();
     fd.set("id", deleteId);
-    await deleteProductAction(fd);
-    toast.success("Produto excluido");
+    const result = await deleteProductAction(fd);
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Produto excluído");
+    }
     setDeleteId(null);
     setDeleting(false);
   }

@@ -7,6 +7,7 @@ import { db, schema } from "@/lib/db";
 import { and, eq } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { toCents } from "@/lib/utils";
+import { audit } from "@/lib/audit";
 
 const saleSchema = z.object({
   representativeId: z.string().min(1),
@@ -42,16 +43,26 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
   const discountCents = toCents(discount);
   const totalCents = Math.max(0, quantity * unitPriceCents - discountCents);
 
-  // Busca comissão % do representante
-  const [rep] = await db
-    .select()
-    .from(schema.representatives)
-    .where(eq(schema.representatives.id, representativeId))
-    .limit(1);
+  // Busca representante e produto
+  const [[rep], [product]] = await Promise.all([
+    db
+      .select()
+      .from(schema.representatives)
+      .where(eq(schema.representatives.id, representativeId))
+      .limit(1),
+    db
+      .select({ implementationPrice: schema.products.implementationPrice })
+      .from(schema.products)
+      .where(eq(schema.products.id, productId))
+      .limit(1),
+  ]);
 
   if (!rep) return { error: "Representante não encontrado." };
+  if (!product) return { error: "Produto não encontrado." };
 
-  const commissionAmount = Math.round((totalCents * rep.commissionPct) / 100);
+  // Comissão calculada sobre o valor de implantação, não sobre o total da venda
+  const implCents = product.implementationPrice * quantity;
+  const commissionAmount = Math.round((implCents * rep.commissionPct) / 100);
 
   // Transação: cria venda + comissão
   await db.transaction(async (tx) => {
@@ -85,7 +96,7 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
 }
 
 export async function cancelSaleAction(formData: FormData) {
-  const { isAdmin, repId } = await requireScope();
+  const { session, isAdmin, repId } = await requireScope();
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
@@ -102,6 +113,7 @@ export async function cancelSaleAction(formData: FormData) {
       .where(eq(schema.commissions.saleId, id));
   });
 
+  await audit(session, "cancel", "sale", id);
   revalidatePath("/vendas");
   revalidatePath("/comissoes");
   revalidatePath("/dashboard");

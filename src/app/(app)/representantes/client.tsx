@@ -46,8 +46,12 @@ export function RepList({ reps }: { reps: RepRow[] }) {
     setDeleting(true);
     const fd = new FormData();
     fd.set("id", deleteId);
-    await deleteRepAction(fd);
-    toast.success("Representante excluido");
+    const result = await deleteRepAction(fd);
+    if (result?.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Representante excluído");
+    }
     setDeleteId(null);
     setDeleting(false);
   }

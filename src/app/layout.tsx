@@ -5,8 +5,8 @@ import { Toaster } from "sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IGA — Gestão de Representantes",
-  description: "Sistema de gestão de representantes e vendas — IGA",
+  title: "IGA — Gerenciamento Comercial",
+  description: "IGA Sistema de Gerenciamento Comercial",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

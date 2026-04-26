@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hash } from "bcrypt-ts";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 
 const repSchema = z.object({
   name: z.string().min(2, "Nome obrigatório"),
@@ -121,9 +122,45 @@ export async function updateRepAction(
 }
 
 export async function deleteRepAction(formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const id = formData.get("id");
-  if (typeof id !== "string") return;
+  if (typeof id !== "string") return { error: "ID inválido." };
+
+  // Verificar dependências antes de deletar
+  const [[salesCount], [commissionsCount], [proposalsCount], [dealsCount], [customersCount]] =
+    await Promise.all([
+      db.select({ total: count() }).from(schema.sales).where(eq(schema.sales.representativeId, id)),
+      db.select({ total: count() }).from(schema.commissions).where(eq(schema.commissions.representativeId, id)),
+      db.select({ total: count() }).from(schema.proposals).where(eq(schema.proposals.representativeId, id)),
+      db.select({ total: count() }).from(schema.deals).where(eq(schema.deals.representativeId, id)),
+      db.select({ total: count() }).from(schema.customers).where(eq(schema.customers.representativeId, id)),
+    ]);
+
+  const deps: string[] = [];
+  if (salesCount.total > 0) deps.push(`${salesCount.total} venda(s)`);
+  if (commissionsCount.total > 0) deps.push(`${commissionsCount.total} comissão(ões)`);
+  if (proposalsCount.total > 0) deps.push(`${proposalsCount.total} proposta(s)`);
+  if (dealsCount.total > 0) deps.push(`${dealsCount.total} negócio(s)`);
+  if (customersCount.total > 0) deps.push(`${customersCount.total} cliente(s)`);
+
+  if (deps.length > 0) {
+    return { error: `Não é possível excluir: representante possui ${deps.join(", ")}.` };
+  }
+
+  // Desvincular usuário antes de deletar
+  const [rep] = await db
+    .select({ userId: schema.representatives.userId })
+    .from(schema.representatives)
+    .where(eq(schema.representatives.id, id))
+    .limit(1);
+
   await db.delete(schema.representatives).where(eq(schema.representatives.id, id));
+
+  // Se tinha usuário vinculado, remover a referência
+  if (rep?.userId) {
+    await db.update(schema.users).set({ role: "rep" }).where(eq(schema.users.id, rep.userId));
+  }
+
+  await audit(session, "delete", "representative", id);
   revalidatePath("/representantes");
 }

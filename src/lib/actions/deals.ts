@@ -8,6 +8,7 @@ import { DEAL_STAGES, type DealStage } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { toCents } from "@/lib/utils";
+import { audit } from "@/lib/audit";
 
 const STAGES = DEAL_STAGES.map((s) => s.id) as [DealStage, ...DealStage[]];
 
@@ -62,6 +63,59 @@ export async function createDealAction(_prev: unknown, formData: FormData) {
   redirect("/pipeline");
 }
 
+export async function updateDealAction(
+  id: string,
+  _prev: unknown,
+  formData: FormData
+) {
+  const { session, isAdmin, repId } = await requireScope();
+
+  const parsed = dealSchema.safeParse({
+    title: formData.get("title"),
+    customerId: formData.get("customerId"),
+    representativeId: isAdmin
+      ? formData.get("representativeId")
+      : repId,
+    productId: formData.get("productId") || undefined,
+    value: formData.get("value") ?? 0,
+    stage: formData.get("stage") ?? "lead",
+    probability: formData.get("probability") ?? 20,
+    expectedCloseDate: formData.get("expectedCloseDate") ?? "",
+    notes: formData.get("notes") ?? "",
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const d = parsed.data;
+  const isClosed = d.stage === "won" || d.stage === "lost";
+
+  const whereClause = isAdmin
+    ? eq(schema.deals.id, id)
+    : and(eq(schema.deals.id, id), eq(schema.deals.representativeId, repId));
+
+  await db
+    .update(schema.deals)
+    .set({
+      title: d.title,
+      customerId: d.customerId,
+      representativeId: d.representativeId,
+      productId: d.productId || null,
+      value: toCents(d.value),
+      stage: d.stage,
+      probability: d.probability,
+      expectedCloseDate: d.expectedCloseDate ? new Date(d.expectedCloseDate) : null,
+      notes: d.notes || null,
+      closedAt: isClosed ? new Date() : null,
+    })
+    .where(whereClause);
+
+  await audit(session, "update", "deal", id);
+  revalidatePath("/pipeline");
+  redirect("/pipeline");
+}
+
 export async function moveDealAction({
   dealId,
   toStage,
@@ -95,7 +149,7 @@ export async function moveDealAction({
 }
 
 export async function deleteDealAction(formData: FormData) {
-  const { isAdmin, repId } = await requireScope();
+  const { session, isAdmin, repId } = await requireScope();
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
@@ -104,6 +158,7 @@ export async function deleteDealAction(formData: FormData) {
     : and(eq(schema.deals.id, id), eq(schema.deals.representativeId, repId));
 
   await db.delete(schema.deals).where(whereClause);
+  await audit(session, "delete", "deal", id);
   revalidatePath("/pipeline");
 }
 
@@ -129,16 +184,24 @@ export async function convertDealToSaleAction(formData: FormData) {
   if (!deal) return { error: "Deal não encontrado." };
   if (!deal.productId) return { error: "Deal sem produto — não é possível converter." };
 
-  const [rep] = await db
-    .select()
-    .from(schema.representatives)
-    .where(eq(schema.representatives.id, deal.representativeId))
-    .limit(1);
+  const [[rep], [product]] = await Promise.all([
+    db
+      .select()
+      .from(schema.representatives)
+      .where(eq(schema.representatives.id, deal.representativeId))
+      .limit(1),
+    db
+      .select({ implementationPrice: schema.products.implementationPrice })
+      .from(schema.products)
+      .where(eq(schema.products.id, deal.productId!))
+      .limit(1),
+  ]);
 
   if (!rep) return { error: "Representante não encontrado." };
+  if (!product) return { error: "Produto não encontrado." };
 
-  // deal.value já está em centavos no DB
-  const commissionAmount = Math.round((deal.value * rep.commissionPct) / 100);
+  // Comissão calculada sobre o valor de implantação do produto
+  const commissionAmount = Math.round((product.implementationPrice * rep.commissionPct) / 100);
 
   await db.transaction(async (tx) => {
     const [sale] = await tx

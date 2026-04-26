@@ -20,7 +20,7 @@ import { brl, cn, dateShort } from "@/lib/utils";
 import { Avatar, Badge } from "@/components/ui";
 import { moveDealAction } from "@/lib/actions/deals";
 import type { DealStage } from "@/lib/db/schema";
-import { Calendar, Trophy, XCircle, ExternalLink, FileText } from "lucide-react";
+import { Calendar, Trophy, XCircle, ExternalLink, FileText, Pencil } from "lucide-react";
 
 type DealRow = {
   id: string;
@@ -241,6 +241,14 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
               <FileText className="h-3 w-3" />
             </Link>
           )}
+          <Link
+            href={`/pipeline/${deal.id}/editar`}
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)]"
+            onClick={(e) => e.stopPropagation()}
+            title="Editar negócio"
+          >
+            <Pencil className="h-3 w-3" />
+          </Link>
           <Link
             href={`/clientes/${deal.customerId}`}
             className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)]"

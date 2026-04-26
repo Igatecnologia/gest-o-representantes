@@ -327,11 +327,13 @@ export function Kbd({ children }: { children: React.ReactNode }) {
 
 export function SearchInput({
   value,
+  defaultValue,
   onChange,
   placeholder = "Buscar...",
   className,
 }: {
-  value: string;
+  value?: string;
+  defaultValue?: string;
   onChange: (v: string) => void;
   placeholder?: string;
   className?: string;
@@ -350,7 +352,7 @@ export function SearchInput({
       </svg>
       <input
         type="search"
-        value={value}
+        {...(value !== undefined ? { value } : { defaultValue })}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(

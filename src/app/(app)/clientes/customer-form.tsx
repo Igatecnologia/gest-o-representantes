@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
 import { maskCep, maskCnpj, maskCpf, maskPhone } from "@/lib/utils";
+import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { Check, Loader2, MapPin, Search, Sparkles } from "lucide-react";
 import type { Customer } from "@/lib/db/schema";
 
@@ -78,15 +79,19 @@ export function CustomerForm({
     undefined
   );
   const [f, setF] = useState<FormState>(fromCustomer(initial));
+  const [dirty, setDirty] = useState(false);
   const [loadingCnpj, startCnpj] = useTransition();
   const [loadingCep, startCep] = useTransition();
   const [cnpjOk, setCnpjOk] = useState(Boolean(initial?.document));
   const [cepOk, setCepOk] = useState(Boolean(initial?.cep));
+  useUnsavedWarning(dirty && !pending);
 
   const isPJ = f.personType === "pj";
 
-  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
+    setDirty(true);
     setF((prev) => ({ ...prev, [k]: v }));
+  };
 
   const switchPersonType = (pt: PersonType) => {
     setF((prev) => ({

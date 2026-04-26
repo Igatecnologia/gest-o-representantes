@@ -4,9 +4,10 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth";
 import { toCents } from "@/lib/utils";
+import { audit } from "@/lib/audit";
 
 const productSchema = z.object({
   name: z.string().min(2),
@@ -81,9 +82,25 @@ export async function updateProductAction(
 }
 
 export async function deleteProductAction(formData: FormData) {
-  await requireAdmin();
+  const session = await requireAdmin();
   const id = formData.get("id");
-  if (typeof id !== "string") return;
+  if (typeof id !== "string") return { error: "ID inválido." };
+
+  // Verificar dependências antes de deletar
+  const [[salesCount], [proposalsCount]] = await Promise.all([
+    db.select({ total: count() }).from(schema.sales).where(eq(schema.sales.productId, id)),
+    db.select({ total: count() }).from(schema.proposals).where(eq(schema.proposals.productId, id)),
+  ]);
+
+  const deps: string[] = [];
+  if (salesCount.total > 0) deps.push(`${salesCount.total} venda(s)`);
+  if (proposalsCount.total > 0) deps.push(`${proposalsCount.total} proposta(s)`);
+
+  if (deps.length > 0) {
+    return { error: `Não é possível excluir: produto possui ${deps.join(", ")}.` };
+  }
+
   await db.delete(schema.products).where(eq(schema.products.id, id));
+  await audit(session, "delete", "product", id);
   revalidatePath("/produtos");
 }

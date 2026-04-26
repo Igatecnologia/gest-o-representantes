@@ -1,7 +1,7 @@
 {
-  "name": "IGA — Gestão de Representantes",
+  "name": "IGA — Gerenciamento Comercial",
   "short_name": "IGA",
-  "description": "Sistema de gestão de representantes e vendas — IGA",
+  "description": "IGA Sistema de Gerenciamento Comercial",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

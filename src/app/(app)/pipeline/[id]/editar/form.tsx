@@ -4,42 +4,35 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
-import { createDealAction } from "@/lib/actions/deals";
+import { updateDealAction } from "@/lib/actions/deals";
 import { DEAL_STAGES } from "@/lib/db/schema";
+import type { Deal } from "@/lib/db/schema";
 
 type Opt = { id: string; name: string };
 type ProdOpt = { id: string; name: string; price: number };
 
 const initial: { error?: string } = {};
 
-export function NewDealForm({
+export function EditDealForm({
+  deal,
   reps,
   customers,
   products,
   isAdmin = true,
 }: {
+  deal: Deal;
   reps: Opt[];
   customers: Opt[];
   products: ProdOpt[];
   isAdmin?: boolean;
 }) {
   const router = useRouter();
-  const [state, action, pending] = useActionState(createDealAction, initial);
+  const boundAction = updateDealAction.bind(null, deal.id);
+  const [state, action, pending] = useActionState(boundAction, initial);
   const [dirty, setDirty] = useState(false);
   useUnsavedWarning(dirty && !pending);
-  const [productId, setProductId] = useState("");
-  const [value, setValue] = useState(0);
-
-  if (reps.length === 0 || customers.length === 0) {
-    return (
-      <Card className="max-w-2xl">
-        <p className="text-sm">
-          Cadastre pelo menos um <strong>representante ativo</strong> e um{" "}
-          <strong>cliente</strong> antes de criar um negócio.
-        </p>
-      </Card>
-    );
-  }
+  const [productId, setProductId] = useState(deal.productId ?? "");
+  const [value, setValue] = useState(deal.value / 100);
 
   return (
     <Card className="max-w-2xl">
@@ -50,13 +43,14 @@ export function NewDealForm({
             id="title"
             name="title"
             required
+            defaultValue={deal.title}
             placeholder="Ex: Licença ACME para 20 usuários"
           />
         </div>
 
         <div>
           <Label htmlFor="customerId">Cliente *</Label>
-          <Select id="customerId" name="customerId" required>
+          <Select id="customerId" name="customerId" required defaultValue={deal.customerId}>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -68,7 +62,7 @@ export function NewDealForm({
         {isAdmin ? (
           <div>
             <Label htmlFor="representativeId">Representante *</Label>
-            <Select id="representativeId" name="representativeId" required>
+            <Select id="representativeId" name="representativeId" required defaultValue={deal.representativeId}>
               {reps.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -123,8 +117,8 @@ export function NewDealForm({
 
         <div>
           <Label htmlFor="stage">Estágio</Label>
-          <Select id="stage" name="stage" defaultValue="lead">
-            {DEAL_STAGES.filter((s) => s.id !== "won" && s.id !== "lost").map((s) => (
+          <Select id="stage" name="stage" defaultValue={deal.stage}>
+            {DEAL_STAGES.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label}
               </option>
@@ -134,12 +128,21 @@ export function NewDealForm({
 
         <div>
           <Label htmlFor="expectedCloseDate">Previsão de fechamento</Label>
-          <Input id="expectedCloseDate" name="expectedCloseDate" type="date" />
+          <Input
+            id="expectedCloseDate"
+            name="expectedCloseDate"
+            type="date"
+            defaultValue={
+              deal.expectedCloseDate
+                ? new Date(deal.expectedCloseDate).toISOString().split("T")[0]
+                : ""
+            }
+          />
         </div>
 
         <div className="md:col-span-2">
           <Label htmlFor="notes">Observações</Label>
-          <Textarea id="notes" name="notes" rows={3} />
+          <Textarea id="notes" name="notes" rows={3} defaultValue={deal.notes ?? ""} />
         </div>
 
         {state.error && (
@@ -150,7 +153,7 @@ export function NewDealForm({
 
         <div className="md:col-span-2 mt-2 flex gap-2 border-t border-[var(--color-border)] pt-5">
           <Button type="submit" disabled={pending}>
-            {pending ? "Criando..." : "Criar negócio"}
+            {pending ? "Salvando..." : "Salvar alterações"}
           </Button>
           <Button type="button" variant="secondary" onClick={() => router.back()}>
             Cancelar

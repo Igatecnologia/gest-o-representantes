@@ -1,5 +1,5 @@
 import { db, schema } from "@/lib/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, or, like, sql } from "drizzle-orm";
 import { Wallet, Download } from "lucide-react";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
 import { brl } from "@/lib/utils";
@@ -8,45 +8,83 @@ import { CommissionList } from "./client";
 
 export const dynamic = "force-dynamic";
 
-export default async function CommissionsPage() {
+const PER_PAGE = 20;
+
+export default async function CommissionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
+}) {
   const { isAdmin, repId } = await requireScope();
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const search = (params.q ?? "").trim();
+  const statusFilter = params.status ?? "";
 
-  const whereRows = isAdmin
-    ? undefined
-    : eq(schema.commissions.representativeId, repId);
+  const scopeWhere = isAdmin ? undefined : eq(schema.commissions.representativeId, repId);
+  const statusWhere = statusFilter ? eq(schema.commissions.status, statusFilter) : undefined;
 
-  const rows = await db
-    .select({
-      id: schema.commissions.id,
-      amount: schema.commissions.amount,
-      status: schema.commissions.status,
-      paidAt: schema.commissions.paidAt,
-      createdAt: schema.commissions.createdAt,
-      saleTotal: schema.sales.total,
-      repName: schema.representatives.name,
-      customerName: schema.customers.name,
-    })
-    .from(schema.commissions)
-    .leftJoin(schema.sales, eq(schema.sales.id, schema.commissions.saleId))
-    .leftJoin(schema.representatives, eq(schema.representatives.id, schema.commissions.representativeId))
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-    .where(whereRows)
-    .orderBy(desc(schema.commissions.createdAt));
+  const searchWhere = search
+    ? or(
+        like(schema.representatives.name, `%${search}%`),
+        like(schema.customers.name, `%${search}%`)
+      )
+    : undefined;
 
-  const summaryByRepQuery = db
-    .select({
-      repId: schema.representatives.id,
-      repName: schema.representatives.name,
-      pending: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'pending' then ${schema.commissions.amount} else 0 end), 0)`,
-      paid: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'paid' then ${schema.commissions.amount} else 0 end), 0)`,
-    })
-    .from(schema.representatives)
-    .leftJoin(schema.commissions, eq(schema.commissions.representativeId, schema.representatives.id))
-    .groupBy(schema.representatives.id);
+  const conditions = [scopeWhere, statusWhere, searchWhere].filter(Boolean);
+  const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
-  const summaryByRep = await (isAdmin
-    ? summaryByRepQuery
-    : summaryByRepQuery.having(eq(schema.representatives.id, repId)));
+  const [[{ total }], rows, summaryByRep] = await Promise.all([
+    db
+      .select({ total: sql<number>`count(*)` })
+      .from(schema.commissions)
+      .leftJoin(schema.sales, eq(schema.sales.id, schema.commissions.saleId))
+      .leftJoin(schema.representatives, eq(schema.representatives.id, schema.commissions.representativeId))
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
+      .where(whereClause),
+    db
+      .select({
+        id: schema.commissions.id,
+        amount: schema.commissions.amount,
+        status: schema.commissions.status,
+        paidAt: schema.commissions.paidAt,
+        createdAt: schema.commissions.createdAt,
+        saleTotal: schema.sales.total,
+        repName: schema.representatives.name,
+        customerName: schema.customers.name,
+      })
+      .from(schema.commissions)
+      .leftJoin(schema.sales, eq(schema.sales.id, schema.commissions.saleId))
+      .leftJoin(schema.representatives, eq(schema.representatives.id, schema.commissions.representativeId))
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
+      .where(whereClause)
+      .orderBy(desc(schema.commissions.createdAt))
+      .limit(PER_PAGE)
+      .offset((page - 1) * PER_PAGE),
+    (isAdmin
+      ? db
+          .select({
+            repId: schema.representatives.id,
+            repName: schema.representatives.name,
+            pending: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'pending' then ${schema.commissions.amount} else 0 end), 0)`,
+            paid: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'paid' then ${schema.commissions.amount} else 0 end), 0)`,
+          })
+          .from(schema.representatives)
+          .leftJoin(schema.commissions, eq(schema.commissions.representativeId, schema.representatives.id))
+          .groupBy(schema.representatives.id)
+      : db
+          .select({
+            repId: schema.representatives.id,
+            repName: schema.representatives.name,
+            pending: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'pending' then ${schema.commissions.amount} else 0 end), 0)`,
+            paid: sql<number>`coalesce(sum(case when ${schema.commissions.status} = 'paid' then ${schema.commissions.amount} else 0 end), 0)`,
+          })
+          .from(schema.representatives)
+          .leftJoin(schema.commissions, eq(schema.commissions.representativeId, schema.representatives.id))
+          .groupBy(schema.representatives.id)
+          .having(eq(schema.representatives.id, repId))
+    ),
+  ]);
 
   return (
     <>
@@ -55,7 +93,7 @@ export default async function CommissionsPage() {
         description={isAdmin ? "Controle de comissao por venda" : "Acompanhe o que voce tem a receber"}
         icon={Wallet}
         actions={
-          rows.length > 0 ? (
+          total > 0 ? (
             <a href="/api/export/comissoes">
               <Button variant="secondary">
                 <Download className="h-4 w-4" />
@@ -98,7 +136,14 @@ export default async function CommissionsPage() {
         </Card>
       )}
 
-      <CommissionList rows={rows} isAdmin={isAdmin} />
+      <CommissionList
+        rows={rows}
+        isAdmin={isAdmin}
+        total={total}
+        page={page}
+        search={search}
+        statusFilter={statusFilter}
+      />
     </>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { FileText, ChevronRight } from "lucide-react";
 import {
@@ -11,6 +12,7 @@ import {
   EmptyState,
   SearchInput,
   StatusFilter,
+  Pagination,
   Table,
   THead,
   TH,
@@ -45,29 +47,50 @@ const STATUS_FILTER_OPTIONS = PROPOSAL_STATUSES.map((s) => ({
   label: s.label,
 }));
 
+const PER_PAGE = 20;
+
 export function ProposalList({
   proposals,
   totalsMap,
   isAdmin,
+  total,
+  page,
+  search,
+  statusFilter,
 }: {
   proposals: ProposalRow[];
   totalsMap: Record<string, { oneTime: number; monthly: number }>;
   isAdmin: boolean;
+  total: number;
+  page: number;
+  search: string;
+  statusFilter: string;
 }) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const q = search.toLowerCase();
-  const filtered = proposals.filter((p) => {
-    if (statusFilter && p.status !== statusFilter) return false;
-    return (
-      (p.customerName?.toLowerCase().includes(q) ?? false) ||
-      (p.productName?.toLowerCase().includes(q) ?? false) ||
-      (p.repName?.toLowerCase().includes(q) ?? false)
-    );
-  });
+  function navigate(newPage: number, newSearch?: string, newStatus?: string) {
+    const s = newSearch ?? search;
+    const st = newStatus ?? statusFilter;
+    const params = new URLSearchParams();
+    if (s) params.set("q", s);
+    if (st) params.set("status", st);
+    if (newPage > 1) params.set("page", String(newPage));
+    const qs = params.toString();
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigate(1, value), 300);
+  }
+
+  function handleStatusChange(value: string) {
+    navigate(1, undefined, value);
+  }
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -80,7 +103,7 @@ export function ProposalList({
     setDeleting(false);
   }
 
-  if (proposals.length === 0) {
+  if (total === 0 && !search && !statusFilter) {
     return (
       <Card>
         <EmptyState
@@ -101,21 +124,21 @@ export function ProposalList({
     <>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <SearchInput
-          value={search}
-          onChange={setSearch}
+          defaultValue={search}
+          onChange={handleSearch}
           placeholder="Buscar por cliente, sistema, representante..."
           className="flex-1"
         />
-        <StatusFilter options={STATUS_FILTER_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
+        <StatusFilter options={STATUS_FILTER_OPTIONS} value={statusFilter} onChange={handleStatusChange} />
       </div>
 
-      {filtered.length === 0 ? (
+      {proposals.length === 0 ? (
         <EmptyState title="Nenhum resultado" hint="Ajuste a busca ou filtro." icon={FileText} />
       ) : (
         <>
           {/* Mobile: cards */}
           <div className="space-y-3 md:hidden">
-            {filtered.map((p) => {
+            {proposals.map((p) => {
               const totals = totalsMap[p.id] ?? { oneTime: 0, monthly: 0 };
               const statusMeta = PROPOSAL_STATUSES.find((s) => s.id === p.status);
               return (
@@ -190,7 +213,7 @@ export function ProposalList({
                 </tr>
               </THead>
               <tbody>
-                {filtered.map((p) => {
+                {proposals.map((p) => {
                   const totals = totalsMap[p.id] ?? { oneTime: 0, monthly: 0 };
                   const statusMeta = PROPOSAL_STATUSES.find((s) => s.id === p.status);
                   return (
@@ -236,6 +259,8 @@ export function ProposalList({
           </Card>
         </>
       )}
+
+      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate(p)} />
 
       <ConfirmDialog
         open={!!deleteId}

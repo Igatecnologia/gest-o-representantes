@@ -110,7 +110,7 @@ export function generateProposalPdf(data: ProposalPdfData): jsPDF {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(180, 200, 240);
-  doc.text("Sistema de Gestao de Representantes", margin + 34, 30);
+  doc.text("IGA Sistema de Gerenciamento Comercial", margin + 34, 30);
 
   // Proposal label on right
   doc.setFontSize(11);
@@ -391,7 +391,7 @@ export function generateProposalPdf(data: ProposalPdfData): jsPDF {
   doc.setFont("helvetica", "normal");
   doc.setTextColor(140, 160, 200);
   doc.text(
-    "IGA - Sistema de Gestao de Representantes | Documento gerado automaticamente",
+    "IGA - Sistema de Gerenciamento Comercial | Documento gerado automaticamente",
     pageWidth / 2,
     pageHeight - 5,
     { align: "center" }

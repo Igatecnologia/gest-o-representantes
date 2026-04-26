@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Receipt, X } from "lucide-react";
 import {
@@ -38,30 +39,48 @@ const STATUS_OPTIONS = [
   { id: "cancelled", label: "Cancelada", tone: "danger" as const },
 ];
 
+const PER_PAGE = 20;
+
 export function SalesList({
   sales,
   isAdmin,
+  total,
+  page,
+  search,
+  statusFilter,
 }: {
   sales: SaleRow[];
   isAdmin: boolean;
+  total: number;
+  page: number;
+  search: string;
+  statusFilter: string;
 }) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const pathname = usePathname();
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const PER_PAGE = 20;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const q = search.toLowerCase();
-  const allFiltered = sales.filter((s) => {
-    if (statusFilter && s.status !== statusFilter) return false;
-    return (
-      (s.customerName?.toLowerCase().includes(q) ?? false) ||
-      (s.productName?.toLowerCase().includes(q) ?? false) ||
-      (s.repName?.toLowerCase().includes(q) ?? false)
-    );
-  });
-  const filtered = allFiltered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  function navigate(newPage: number, newSearch?: string, newStatus?: string) {
+    const s = newSearch ?? search;
+    const st = newStatus ?? statusFilter;
+    const params = new URLSearchParams();
+    if (s) params.set("q", s);
+    if (st) params.set("status", st);
+    if (newPage > 1) params.set("page", String(newPage));
+    const qs = params.toString();
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigate(1, value), 300);
+  }
+
+  function handleStatusChange(value: string) {
+    navigate(1, undefined, value);
+  }
 
   async function handleCancel() {
     if (!cancelId) return;
@@ -78,15 +97,15 @@ export function SalesList({
     <>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <SearchInput
-          value={search}
-          onChange={setSearch}
+          defaultValue={search}
+          onChange={handleSearch}
           placeholder="Buscar por cliente, produto, representante..."
           className="flex-1"
         />
-        <StatusFilter options={STATUS_OPTIONS} value={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} />
+        <StatusFilter options={STATUS_OPTIONS} value={statusFilter} onChange={handleStatusChange} />
       </div>
 
-      {filtered.length === 0 ? (
+      {sales.length === 0 ? (
         <EmptyState
           title={search || statusFilter ? "Nenhum resultado" : "Nenhuma venda registrada"}
           hint="Ajuste os filtros ou cadastre uma nova venda."
@@ -107,7 +126,7 @@ export function SalesList({
             </tr>
           </THead>
           <tbody>
-            {filtered.map((s) => (
+            {sales.map((s) => (
               <TR key={s.id}>
                 <TD className="text-[var(--color-text-muted)]">{dateShort(s.createdAt)}</TD>
                 {isAdmin && (
@@ -141,7 +160,7 @@ export function SalesList({
         </Table>
       )}
 
-      <Pagination total={allFiltered.length} page={page} perPage={PER_PAGE} onChange={setPage} />
+      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate(p)} />
 
       <ConfirmDialog
         open={!!cancelId}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { Wallet } from "lucide-react";
 import {
@@ -36,29 +37,48 @@ const STATUS_OPTIONS = [
   { id: "paid", label: "Paga" },
 ];
 
+const PER_PAGE = 20;
+
 export function CommissionList({
   rows,
   isAdmin,
+  total,
+  page,
+  search,
+  statusFilter,
 }: {
   rows: CommRow[];
   isAdmin: boolean;
+  total: number;
+  page: number;
+  search: string;
+  statusFilter: string;
 }) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const pathname = usePathname();
   const [actionId, setActionId] = useState<{ id: string; action: "pay" | "revert" } | null>(null);
   const [loading, setLoading] = useState(false);
-  const PER_PAGE = 20;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const q = search.toLowerCase();
-  const allFiltered = rows.filter((c) => {
-    if (statusFilter && c.status !== statusFilter) return false;
-    return (
-      (c.repName?.toLowerCase().includes(q) ?? false) ||
-      (c.customerName?.toLowerCase().includes(q) ?? false)
-    );
-  });
-  const filtered = allFiltered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  function navigate(newPage: number, newSearch?: string, newStatus?: string) {
+    const s = newSearch ?? search;
+    const st = newStatus ?? statusFilter;
+    const params = new URLSearchParams();
+    if (s) params.set("q", s);
+    if (st) params.set("status", st);
+    if (newPage > 1) params.set("page", String(newPage));
+    const qs = params.toString();
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigate(1, value), 300);
+  }
+
+  function handleStatusChange(value: string) {
+    navigate(1, undefined, value);
+  }
 
   async function handleAction() {
     if (!actionId) return;
@@ -80,15 +100,15 @@ export function CommissionList({
     <>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <SearchInput
-          value={search}
-          onChange={setSearch}
+          defaultValue={search}
+          onChange={handleSearch}
           placeholder="Buscar por representante ou cliente..."
           className="flex-1"
         />
-        <StatusFilter options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
+        <StatusFilter options={STATUS_OPTIONS} value={statusFilter} onChange={handleStatusChange} />
       </div>
 
-      {filtered.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState
           title={search || statusFilter ? "Nenhum resultado" : "Nenhuma comissao gerada"}
           icon={Wallet}
@@ -108,7 +128,7 @@ export function CommissionList({
             </tr>
           </THead>
           <tbody>
-            {filtered.map((c) => (
+            {rows.map((c) => (
               <TR key={c.id}>
                 <TD>{dateShort(c.createdAt)}</TD>
                 {isAdmin && <TD>{c.repName ?? "-"}</TD>}
@@ -142,7 +162,7 @@ export function CommissionList({
         </Table>
       )}
 
-      <Pagination total={allFiltered.length} page={page} perPage={PER_PAGE} onChange={setPage} />
+      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate(p)} />
 
       <ConfirmDialog
         open={!!actionId}
