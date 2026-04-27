@@ -23,6 +23,7 @@ export async function createFollowUpAction(input: {
   type: string;
   notes?: string;
 }) {
+  // requireScope fora do try/catch — redirect precisa propagar
   const { isAdmin, repId } = await requireScope();
 
   if (!repId && !isAdmin) {
@@ -36,30 +37,57 @@ export async function createFollowUpAction(input: {
 
   const d = parsed.data;
 
-  let finalRepId = repId;
-  if (!finalRepId && isAdmin) {
-    const [firstRep] = await db
-      .select({ id: schema.representatives.id })
-      .from(schema.representatives)
-      .where(eq(schema.representatives.active, true))
-      .limit(1);
-    if (!firstRep) return { error: "Nenhum representante ativo cadastrado." };
-    finalRepId = firstRep.id;
+  // Valida data antes de tentar inserir
+  const scheduledDate = new Date(d.scheduledDate);
+  if (Number.isNaN(scheduledDate.getTime())) {
+    return { error: "Data de retorno inválida." };
   }
 
-  await db.insert(schema.followUps).values({
-    customerId: d.customerId,
-    representativeId: finalRepId!,
-    proposalId: d.proposalId || null,
-    dealId: d.dealId || null,
-    scheduledDate: new Date(d.scheduledDate),
-    type: d.type,
-    notes: d.notes || null,
-  });
+  try {
+    let finalRepId = repId;
+    if (!finalRepId && isAdmin) {
+      const [firstRep] = await db
+        .select({ id: schema.representatives.id })
+        .from(schema.representatives)
+        .where(eq(schema.representatives.active, true))
+        .limit(1);
+      if (!firstRep) return { error: "Nenhum representante ativo cadastrado." };
+      finalRepId = firstRep.id;
+    }
 
-  revalidatePath("/retornos");
-  revalidatePath("/dashboard");
-  return { success: true };
+    // Confirma que customer existe (e pertence ao rep, se não for admin) — evita FK violation opaca
+    const [customer] = await db
+      .select({ id: schema.customers.id, repId: schema.customers.representativeId })
+      .from(schema.customers)
+      .where(eq(schema.customers.id, d.customerId))
+      .limit(1);
+    if (!customer) {
+      return { error: "Cliente não encontrado." };
+    }
+    if (!isAdmin && customer.repId !== repId) {
+      return { error: "Cliente não pertence ao seu cadastro." };
+    }
+
+    await db.insert(schema.followUps).values({
+      customerId: d.customerId,
+      representativeId: finalRepId!,
+      proposalId: d.proposalId || null,
+      dealId: d.dealId || null,
+      scheduledDate,
+      type: d.type,
+      notes: d.notes || null,
+    });
+
+    revalidatePath("/retornos");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (err) {
+    console.error("[createFollowUpAction] erro ao salvar retorno", {
+      err,
+      input: { ...d, customerId: d.customerId.slice(0, 8) + "…" },
+    });
+    return { error: "Erro ao salvar retorno. Verifique os dados e tente novamente." };
+  }
 }
 
 export async function completeFollowUpAction(formData: FormData) {
