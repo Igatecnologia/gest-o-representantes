@@ -13,7 +13,7 @@ export default async function RetornosPage({
   searchParams: Promise<{ filter?: string }>;
 }) {
   const { filter } = await searchParams;
-  const activeFilter = (filter as "today" | "week" | "month" | "overdue" | "all") || "today";
+  const activeFilter = (filter as "today" | "week" | "month" | "overdue" | "all") || "all";
 
   const [followUps, counts] = await Promise.all([
     getFollowUps(activeFilter),
