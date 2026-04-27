@@ -21,13 +21,7 @@ export function MarkAsSentWithFollowUp({
   async function handleSend() {
     setLoading(true);
 
-    // Marcar proposta como enviada
-    const formData = new FormData();
-    formData.set("id", proposalId);
-    formData.set("status", "sent");
-    await updateProposalStatusAction(formData);
-
-    // Se agendou retorno, criar
+    // Se agendou retorno, criar ANTES de mudar status (para evitar revalidate antes)
     if (scheduledDate) {
       await createFollowUpAction({
         customerId,
@@ -38,7 +32,12 @@ export function MarkAsSentWithFollowUp({
       });
     }
 
-    // Page will revalidate via server action
+    // Marcar proposta como enviada (revalidate paths ao final)
+    const formData = new FormData();
+    formData.set("id", proposalId);
+    formData.set("status", "sent");
+    await updateProposalStatusAction(formData);
+
     setLoading(false);
   }
 
