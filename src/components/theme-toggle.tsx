@@ -6,12 +6,12 @@ import { Sun, Moon } from "lucide-react";
 type Theme = "dark" | "light";
 
 function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem("iga-theme") as Theme) ?? "dark";
+  if (typeof window === "undefined") return "light";
+  return (localStorage.getItem("iga-theme") as Theme) ?? "light";
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const stored = getStoredTheme();

@@ -183,7 +183,7 @@ export function FieldForm() {
     return (
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
         <ScaleSpring>
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand shadow-[0_0_48px_rgba(139,92,246,0.5)]">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand shadow-lg">
             <CheckCircle2 className="h-10 w-10 text-white" />
           </div>
         </ScaleSpring>
@@ -232,7 +232,7 @@ export function FieldForm() {
           </div>
           <div className="font-semibold">Novo cliente</div>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-brand shadow-[0_0_16px_rgba(139,92,246,0.35)]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gradient-brand shadow-sm">
           <Building2 className="h-4 w-4 text-white" />
         </div>
       </header>
@@ -494,7 +494,7 @@ export function FieldForm() {
               form?.requestSubmit();
             }}
             disabled={pending}
-            className="w-full rounded-[var(--radius)] bg-gradient-brand px-5 py-4 text-base font-semibold text-white shadow-[0_8px_24px_-4px_rgba(139,92,246,0.5)] active:scale-[0.98] disabled:opacity-50"
+            className="w-full rounded-[var(--radius)] bg-gradient-brand px-5 py-4 text-base font-semibold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
           >
             {pending ? "Enviando..." : "Cadastrar cliente"}
           </button>

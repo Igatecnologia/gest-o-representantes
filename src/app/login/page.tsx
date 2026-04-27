@@ -118,7 +118,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" size="lg" className="h-12 w-full text-base shadow-[0_0_24px_rgba(46,109,180,0.4)]" disabled={pending}>
+            <Button type="submit" size="lg" className="h-12 w-full text-base shadow-sm" disabled={pending}>
               {pending ? "Entrando..." : "Entrar"}
             </Button>
           </form>

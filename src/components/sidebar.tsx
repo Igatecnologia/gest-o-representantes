@@ -224,11 +224,11 @@ export function Sidebar({
                 {active && (
                   <motion.span
                     layoutId="mobile-tab-active"
-                    className="absolute -top-1 h-0.5 w-6 rounded-full bg-gradient-brand shadow-[0_0_8px_rgba(46,109,180,0.5)]"
+                    className="absolute -top-1 h-0.5 w-6 rounded-full bg-[var(--color-primary)]"
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
-                <item.icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_6px_rgba(46,109,180,0.5)]")} />
+                <item.icon className={cn("h-5 w-5")} />
                 <span>{item.label}</span>
               </Link>
             );

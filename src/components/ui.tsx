@@ -17,15 +17,15 @@ export const Button = React.forwardRef<
     "inline-flex items-center justify-center gap-2 rounded-[var(--radius)] font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-primary)]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] active:scale-[0.97] cursor-pointer";
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] shadow-[0_1px_0_rgba(255,255,255,0.12)_inset,0_2px_8px_-2px_rgba(46,109,180,0.5),0_0_0_1px_rgba(46,109,180,0.3)]",
+      "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] shadow-sm",
     secondary:
-      "bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-surface-3)] hover:border-[var(--color-border-strong)] card-glow",
+      "bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-border-strong)]",
     outline:
       "bg-transparent text-[var(--color-text)] border border-[var(--color-border-strong)] hover:bg-[var(--color-surface-2)]",
     ghost:
       "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]",
     danger:
-      "bg-[var(--color-danger)] text-white hover:opacity-90 shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)]",
+      "bg-[var(--color-danger)] text-white hover:opacity-90 shadow-sm",
   };
   const sizes: Record<ButtonSize, string> = {
     sm: "h-10 px-3 text-xs",
@@ -154,7 +154,7 @@ export function PageHeader({
     <div className="mb-8 flex items-end justify-between gap-4">
       <div className="flex items-start gap-3">
         {Icon && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-gradient-brand-subtle border border-[var(--color-border)] shadow-[0_0_12px_rgba(46,109,180,0.1)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-gradient-brand-subtle border border-[var(--color-border)] shadow-sm">
             <Icon className="h-5 w-5 text-[var(--color-primary)]" />
           </div>
         )}

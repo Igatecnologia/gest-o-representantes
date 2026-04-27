@@ -25,7 +25,7 @@ const TONE_CONFIG: Record<
     iconBg: "bg-[var(--color-primary)]/15",
     iconText: "text-[var(--color-primary-light)]",
     sparkStroke: "#2e6db4",
-    sparkFill: "#2e6db4",
+    sparkFill: "#2e6db480",
     orbColor: "bg-[var(--color-primary)]/20",
     orbColor2: "bg-[var(--color-accent)]/10",
     border: "border-[var(--color-primary)]/15",
