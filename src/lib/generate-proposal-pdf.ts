@@ -53,10 +53,10 @@ function typeLabel(type: string): string {
   }
 }
 
-// Brand colors
-const BRAND_BLUE = [37, 99, 235] as const; // #2563eb
-const BRAND_DARK = [10, 16, 32] as const; // #0a1020
-const BRAND_VIOLET = [99, 102, 241] as const; // #6366f1
+// Brand colors — IGA identity
+const BRAND_BLUE = [46, 109, 180] as const; // #2e6db4
+const BRAND_DARK = [8, 20, 34] as const; // #081422
+const BRAND_VIOLET = [27, 79, 138] as const; // #1b4f8a
 const TEXT_DARK = [15, 23, 42] as const;
 const TEXT_MUTED = [100, 116, 139] as const;
 const WHITE = [255, 255, 255] as const;
