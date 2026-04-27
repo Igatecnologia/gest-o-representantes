@@ -232,6 +232,54 @@ export const FOLLOWUP_TYPES = [
 
 export type FollowUpType = (typeof FOLLOWUP_TYPES)[number]["id"];
 
+export const attachments = sqliteTable("attachments", {
+  id: id(),
+  // Polimorfico — entidade dona do anexo
+  entity: text("entity").notNull(), // customer | proposal | deal
+  entityId: text("entity_id").notNull(),
+  // Metadados do arquivo
+  filename: text("filename").notNull(),
+  url: text("url").notNull(), // URL do Vercel Blob
+  size: integer("size").notNull(), // bytes
+  mimeType: text("mime_type").notNull(),
+  // Quem subiu (audit)
+  uploadedBy: text("uploaded_by")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  uploadedByName: text("uploaded_by_name").notNull(),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_attachments_entity").on(t.entity, t.entityId),
+  index("idx_attachments_user").on(t.uploadedBy),
+]);
+
+export type Attachment = typeof attachments.$inferSelect;
+
+export const visits = sqliteTable("visits", {
+  id: id(),
+  customerId: text("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  representativeId: text("representative_id")
+    .notNull()
+    .references(() => representatives.id, { onDelete: "restrict" }),
+  // Coordenadas onde o rep estava ao fazer check-in
+  latitude: real("latitude").notNull(),
+  longitude: real("longitude").notNull(),
+  accuracy: real("accuracy"), // metros — fornecido pelo navegador
+  // Distância em metros entre o rep e o cliente cadastrado.
+  // null se o cliente não tem coordenadas.
+  distanceMeters: real("distance_meters"),
+  notes: text("notes"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_visits_customer").on(t.customerId),
+  index("idx_visits_rep").on(t.representativeId),
+  index("idx_visits_created").on(t.createdAt),
+]);
+
+export type Visit = typeof visits.$inferSelect;
+
 export const auditLogs = sqliteTable("audit_logs", {
   id: id(),
   userId: text("user_id").notNull(),

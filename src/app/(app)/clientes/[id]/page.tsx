@@ -30,6 +30,11 @@ import {
 } from "@/components/ui";
 import { brl, dateLong, dateShort, maskCep, maskCnpj, maskPhone } from "@/lib/utils";
 import { PROPOSAL_STATUSES, DEAL_STAGES } from "@/lib/db/schema";
+import { AttachmentList } from "@/components/attachment-list";
+import { getAttachments } from "@/lib/actions/attachments";
+import { CheckInButton } from "@/components/check-in-button";
+import { getVisitsForCustomer } from "@/lib/actions/visits";
+import { Paperclip } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -73,8 +78,8 @@ export default async function CustomerPage({
     .where(eq(schema.sales.customerId, id))
     .orderBy(desc(schema.sales.createdAt));
 
-  // Propostas e deals em paralelo
-  const [proposals, deals] = await Promise.all([
+  // Propostas, deals, anexos e visitas em paralelo
+  const [proposals, deals, attachments, visits] = await Promise.all([
     db.select({
       id: schema.proposals.id,
       status: schema.proposals.status,
@@ -94,6 +99,8 @@ export default async function CustomerPage({
       .where(eq(schema.deals.customerId, id))
       .orderBy(desc(schema.deals.createdAt))
       .limit(5),
+    getAttachments("customer", id),
+    getVisitsForCustomer(id),
   ]);
 
   const totalSpent = sales
@@ -246,6 +253,34 @@ export default async function CustomerPage({
               </p>
             </Card>
           )}
+
+          {/* Anexos */}
+          <Card>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <Paperclip className="h-4 w-4 text-[var(--color-primary)]" />
+              Anexos
+            </h2>
+            <AttachmentList
+              entity="customer"
+              entityId={customer.id}
+              attachments={attachments}
+            />
+          </Card>
+
+          {/* Visitas (check-in GPS) */}
+          <Card>
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <MapPin className="h-4 w-4 text-[var(--color-primary)]" />
+              Visitas
+            </h2>
+            <CheckInButton
+              customerId={customer.id}
+              customerHasCoords={
+                customer.latitude != null && customer.longitude != null
+              }
+              visits={visits}
+            />
+          </Card>
         </div>
 
         {/* Coluna direita: histórico de vendas */}
