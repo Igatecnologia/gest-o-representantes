@@ -90,6 +90,18 @@ export function maskPhone(raw: string): string {
     .replace(/(\d{5})(\d)/, "$1-$2");
 }
 
+/**
+ * Constrói URL do WhatsApp web/app com mensagem pré-pronta.
+ * Aceita telefone com ou sem máscara; força DDI 55 (Brasil) se for nacional.
+ */
+export function whatsappUrl(phone: string | null | undefined, message: string): string {
+  const cleaned = (phone ?? "").replace(/\D/g, "");
+  const withCountry =
+    cleaned.length >= 10 && !cleaned.startsWith("55") ? `55${cleaned}` : cleaned;
+  const text = encodeURIComponent(message);
+  return withCountry ? `https://wa.me/${withCountry}?text=${text}` : `https://wa.me/?text=${text}`;
+}
+
 /** Escapa campo CSV contra formula injection (=, +, -, @, \t, \r) */
 export function csvSafe(value: string): string {
   const escaped = value.replace(/"/g, '""');
