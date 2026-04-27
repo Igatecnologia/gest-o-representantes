@@ -31,6 +31,8 @@ export const representatives = sqliteTable("representatives", {
   phone: text("phone"),
   // comissão em percentual, ex: 10 = 10%
   commissionPct: real("commission_pct").notNull().default(0),
+  // Meta mensal de vendas em centavos (0 = sem meta definida)
+  monthlyGoalCents: integer("monthly_goal_cents").notNull().default(0),
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: createdAt(),
 }, (t) => [

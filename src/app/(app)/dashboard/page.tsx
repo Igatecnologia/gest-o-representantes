@@ -16,6 +16,8 @@ import {
   Table,
 } from "@/components/ui";
 import { StatCard } from "@/components/stat-card";
+import { GoalProgress } from "@/components/goal-progress";
+import { ActivityHeatmap } from "@/components/activity-heatmap";
 // Lazy load Recharts (~120KB) — só carrega quando dashboard é renderizado,
 // fora do shared chunk de outras páginas
 const RevenueChart = nextDynamic(
@@ -240,18 +242,56 @@ export default async function DashboardPage({
 
   // Top customers (rep only) — depende de repId, usa o período selecionado
   let topCustomers: { id: string; name: string; total: number }[] = [];
+  let monthlyGoal = 0;
+  let salesThisCalendarMonth = 0;
+  let heatmapData: { day: string; count: number }[] = [];
   if (!isAdmin && repId) {
-    topCustomers = await db
-      .select({
-        id: schema.customers.id, name: schema.customers.name,
-        total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
-      })
-      .from(schema.sales)
-      .innerJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-      .where(and(eq(schema.sales.representativeId, repId), eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, periodStart)))
-      .groupBy(schema.customers.id)
-      .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
-      .limit(3);
+    const ninetyDaysAgo = daysAgo(89);
+    const [topRows, [repRow], [thisMonthRow], heatmap] = await Promise.all([
+      db
+        .select({
+          id: schema.customers.id, name: schema.customers.name,
+          total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
+        })
+        .from(schema.sales)
+        .innerJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
+        .where(and(eq(schema.sales.representativeId, repId), eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, periodStart)))
+        .groupBy(schema.customers.id)
+        .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
+        .limit(3),
+      db
+        .select({ goal: schema.representatives.monthlyGoalCents })
+        .from(schema.representatives)
+        .where(eq(schema.representatives.id, repId))
+        .limit(1),
+      db
+        .select({
+          total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
+        })
+        .from(schema.sales)
+        .where(and(
+          eq(schema.sales.representativeId, repId),
+          eq(schema.sales.status, "approved"),
+          gte(schema.sales.createdAt, firstOfMonth),
+        )),
+      // Heatmap: count de vendas aprovadas por dia nos últimos 90 dias
+      db
+        .select({
+          day: sql<string>`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`,
+          count: sql<number>`count(*)`,
+        })
+        .from(schema.sales)
+        .where(and(
+          eq(schema.sales.representativeId, repId),
+          eq(schema.sales.status, "approved"),
+          gte(schema.sales.createdAt, ninetyDaysAgo),
+        ))
+        .groupBy(sql`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`),
+    ]);
+    topCustomers = topRows;
+    monthlyGoal = repRow?.goal ?? 0;
+    salesThisCalendarMonth = thisMonthRow?.total ?? 0;
+    heatmapData = heatmap;
   }
 
   return (
@@ -482,6 +522,18 @@ export default async function DashboardPage({
           </Card>
         ) : (
           <div className="space-y-6">
+            {/* Meta mensal */}
+            <GoalProgress
+              current={salesThisCalendarMonth}
+              goal={monthlyGoal}
+              label="Meta deste mês"
+              hint={
+                monthlyGoal === 0
+                  ? "Pedir pro admin definir uma meta no seu cadastro"
+                  : undefined
+              }
+            />
+
             <Card>
               <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
                 <Target className="h-4 w-4 text-[var(--color-primary)]" />
@@ -496,6 +548,21 @@ export default async function DashboardPage({
           </div>
         )}
       </div>
+
+      {/* Heatmap de atividade — só pra rep */}
+      {!isAdmin && (
+        <div className="mt-6">
+          <Card>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-sm font-semibold">
+                <BarChart3 className="h-4 w-4 text-[var(--color-primary)]" />
+                Atividade dos últimos 90 dias
+              </h2>
+            </div>
+            <ActivityHeatmap data={heatmapData} weeks={13} />
+          </Card>
+        </div>
+      )}
 
       <div className="mt-6">
         <Card>

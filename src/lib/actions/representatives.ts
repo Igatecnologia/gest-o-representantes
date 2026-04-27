@@ -14,6 +14,7 @@ const repSchema = z.object({
   email: z.literal("").or(z.string().email("E-mail inválido")).optional(),
   phone: z.string().optional(),
   commissionPct: z.coerce.number().min(0).max(100),
+  monthlyGoal: z.coerce.number().min(0).optional().default(0),
   active: z.union([z.literal("on"), z.literal(null), z.literal("")]).optional(),
   // Login
   createLogin: z
@@ -31,6 +32,7 @@ export async function createRepAction(_prev: unknown, formData: FormData) {
     email: formData.get("email") ?? "",
     phone: formData.get("phone") ?? "",
     commissionPct: formData.get("commissionPct"),
+    monthlyGoal: formData.get("monthlyGoal") ?? 0,
     active: formData.get("active"),
     createLogin: formData.get("createLogin"),
     loginEmail: formData.get("loginEmail") ?? "",
@@ -80,6 +82,7 @@ export async function createRepAction(_prev: unknown, formData: FormData) {
     email: d.email || null,
     phone: d.phone || null,
     commissionPct: d.commissionPct,
+    monthlyGoalCents: Math.round((d.monthlyGoal ?? 0) * 100),
     active: d.active === "on",
   });
 
@@ -100,6 +103,7 @@ export async function updateRepAction(
     email: formData.get("email") ?? "",
     phone: formData.get("phone") ?? "",
     commissionPct: formData.get("commissionPct"),
+    monthlyGoal: formData.get("monthlyGoal") ?? 0,
     active: formData.get("active"),
   });
 
@@ -114,6 +118,7 @@ export async function updateRepAction(
       email: parsed.data.email || null,
       phone: parsed.data.phone || null,
       commissionPct: parsed.data.commissionPct,
+      monthlyGoalCents: Math.round((parsed.data.monthlyGoal ?? 0) * 100),
       active: parsed.data.active === "on",
     })
     .where(eq(schema.representatives.id, id));

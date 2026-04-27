@@ -1,0 +1,1 @@
+ALTER TABLE `representatives` ADD `monthly_goal_cents` integer DEFAULT 0 NOT NULL;

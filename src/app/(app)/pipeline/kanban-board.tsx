@@ -28,6 +28,10 @@ import {
   FileText,
   Pencil,
   AlertTriangle,
+  TrendingUp,
+  Kanban,
+  List,
+  Clock,
 } from "lucide-react";
 
 type DealRow = {
@@ -44,6 +48,7 @@ type DealRow = {
   repName: string | null;
   productId: string | null;
   isStale: boolean;
+  daysInStage: number;
 };
 
 type Column = {
@@ -51,6 +56,8 @@ type Column = {
   label: string;
   probability: number;
   deals: DealRow[];
+  total: number;
+  forecast: number;
 };
 
 const stageTone: Record<string, string> = {
@@ -68,12 +75,20 @@ export function KanbanBoard({
   repFilter,
   reps,
   isAdmin,
+  sortKey,
+  viewMode,
+  grandForecast,
+  wonTotal,
 }: {
   columns: Column[];
   search: string;
   repFilter: string;
   reps: { id: string; name: string }[];
   isAdmin: boolean;
+  sortKey: string;
+  viewMode: "kanban" | "list";
+  grandForecast: number;
+  wonTotal: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,14 +100,20 @@ export function KanbanBoard({
     setCols(columns);
   }, [columns]);
 
-  function navigate(updates: Partial<{ q: string; rep: string }>) {
+  function navigate(
+    updates: Partial<{ q: string; rep: string; sort: string; view: string }>,
+  ) {
     const next = {
       q: updates.q ?? search,
       rep: updates.rep !== undefined ? updates.rep : repFilter,
+      sort: updates.sort !== undefined ? updates.sort : sortKey,
+      view: updates.view !== undefined ? updates.view : viewMode,
     };
     const params = new URLSearchParams();
     if (next.q) params.set("q", next.q);
     if (next.rep) params.set("rep", next.rep);
+    if (next.sort && next.sort !== "created") params.set("sort", next.sort);
+    if (next.view && next.view !== "kanban") params.set("view", next.view);
     const qs = params.toString();
     router.push(`${pathname}${qs ? `?${qs}` : ""}`);
   }
@@ -107,6 +128,7 @@ export function KanbanBoard({
     (acc, c) => acc + c.deals.filter((d) => d.isStale).length,
     0,
   );
+  const totalDealsCount = cols.reduce((acc, c) => acc + c.deals.length, 0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -165,7 +187,59 @@ export function KanbanBoard({
 
   return (
     <>
-      {/* Filtros */}
+      {/* Forecast bar — visão executiva */}
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] border-l-[var(--color-primary)] bg-[var(--color-surface)] px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)]/10">
+            <TrendingUp className="h-4 w-4 text-[var(--color-primary)]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+              Previsão de receita
+            </div>
+            <div className="text-lg font-bold tabular-nums leading-tight">
+              {brl(grandForecast)}
+            </div>
+            <div className="text-[10px] text-[var(--color-text-dim)]">
+              valor × probabilidade das stages abertas
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] border-l-emerald-500 bg-[var(--color-surface)] px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+            <Trophy className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+              Ganhos (acumulado)
+            </div>
+            <div className="text-lg font-bold tabular-nums leading-tight text-emerald-600">
+              {brl(wonTotal)}
+            </div>
+            <div className="text-[10px] text-[var(--color-text-dim)]">
+              negócios fechados
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] border-l-[var(--color-text-muted)] bg-[var(--color-surface)] px-4 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--color-surface-2)]">
+            <Kanban className="h-4 w-4 text-[var(--color-text-muted)]" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+              Total de negócios
+            </div>
+            <div className="text-lg font-bold tabular-nums leading-tight">
+              {totalDealsCount}
+            </div>
+            <div className="text-[10px] text-[var(--color-text-dim)]">
+              {staleCount > 0 ? `${staleCount} parado(s)` : "todos ativos"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros + sort + view toggle */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <SearchInput
           defaultValue={search}
@@ -177,9 +251,9 @@ export function KanbanBoard({
           <Select
             value={repFilter}
             onChange={(e) => navigate({ rep: e.target.value })}
-            className="md:w-[220px]"
+            className="md:w-[180px]"
           >
-            <option value="">Todos os representantes</option>
+            <option value="">Todos representantes</option>
             {reps.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -187,36 +261,74 @@ export function KanbanBoard({
             ))}
           </Select>
         )}
-        {staleCount > 0 && (
-          <div className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs font-medium text-amber-600">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            {staleCount} negócio(s) parado(s) há 30+ dias
-          </div>
-        )}
+        <Select
+          value={sortKey}
+          onChange={(e) => navigate({ sort: e.target.value })}
+          className="md:w-[180px]"
+        >
+          <option value="created">Mais recentes</option>
+          <option value="value">Maior valor</option>
+          <option value="expectedClose">Próx. fechamento</option>
+          <option value="stale">Mais antigos</option>
+        </Select>
+
+        {/* View toggle Kanban / Lista */}
+        <div className="inline-flex rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-0.5">
+          <button
+            onClick={() => navigate({ view: "kanban" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium transition-all",
+              viewMode === "kanban"
+                ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)]",
+            )}
+            aria-pressed={viewMode === "kanban"}
+          >
+            <Kanban className="h-3.5 w-3.5" />
+            Kanban
+          </button>
+          <button
+            onClick={() => navigate({ view: "list" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium transition-all",
+              viewMode === "list"
+                ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm"
+                : "text-[var(--color-text-muted)]",
+            )}
+            aria-pressed={viewMode === "list"}
+          >
+            <List className="h-3.5 w-3.5" />
+            Lista
+          </button>
+        </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          {cols.map((col) => (
-            <KanbanColumn key={col.id} column={col} />
-          ))}
-        </div>
+      {viewMode === "list" ? (
+        <DealListView columns={cols} />
+      ) : (
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex gap-3 overflow-x-auto pb-4">
+            {cols.map((col) => (
+              <KanbanColumn key={col.id} column={col} />
+            ))}
+          </div>
 
-        <DragOverlay>
-          {activeDeal ? <KanbanCard deal={activeDeal} dragging /> : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeDeal ? <KanbanCard deal={activeDeal} dragging /> : null}
+          </DragOverlay>
+        </DndContext>
+      )}
     </>
   );
 }
 
 function KanbanColumn({ column }: { column: Column }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
-  const total = column.deals.reduce((acc, d) => acc + d.value, 0);
+  const isTerminal = column.id === "won" || column.id === "lost";
 
   return (
     <div
@@ -224,18 +336,31 @@ function KanbanColumn({ column }: { column: Column }) {
       className={cn(
         "flex w-[300px] shrink-0 flex-col rounded-[var(--radius-lg)] border bg-[var(--color-surface)] transition-colors",
         stageTone[column.id],
-        isOver && "ring-2 ring-[var(--color-primary)]/40"
+        isOver && "ring-2 ring-[var(--color-primary)]/40",
       )}
     >
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-        <div className="flex items-center gap-2">
-          {column.id === "won" && <Trophy className="h-4 w-4 text-emerald-400" />}
-          {column.id === "lost" && <XCircle className="h-4 w-4 text-red-400" />}
-          <h3 className="text-sm font-semibold">{column.label}</h3>
+      <div className="border-b border-[var(--color-border)] px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {column.id === "won" && <Trophy className="h-4 w-4 text-emerald-500" />}
+            {column.id === "lost" && <XCircle className="h-4 w-4 text-red-500" />}
+            <h3 className="text-sm font-semibold">{column.label}</h3>
+          </div>
           <Badge tone="default">{column.deals.length}</Badge>
         </div>
-        <div className="text-xs tabular-nums text-[var(--color-text-muted)]">
-          {brl(total)}
+        {/* Value totals */}
+        <div className="mt-1.5 flex items-baseline justify-between gap-2">
+          <span className="text-sm font-bold tabular-nums text-[var(--color-text)]">
+            {brl(column.total)}
+          </span>
+          {!isTerminal && column.deals.length > 0 && (
+            <span
+              className="text-[10px] tabular-nums text-[var(--color-text-muted)]"
+              title={`Forecast = soma × ${column.probability}% probabilidade`}
+            >
+              ~{brl(column.forecast)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -294,6 +419,28 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
         {deal.customerName ?? "-"}
       </div>
 
+      {/* Dias no stage + expected close */}
+      <div className="mb-2 flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
+            deal.isStale
+              ? "bg-amber-500/15 text-amber-600"
+              : "bg-[var(--color-surface-3)]/70",
+          )}
+          title="Dias desde criação"
+        >
+          <Clock className="h-2.5 w-2.5" />
+          {deal.daysInStage}d
+        </span>
+        {deal.expectedCloseDate && (
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-2.5 w-2.5" />
+            {dateShort(deal.expectedCloseDate)}
+          </span>
+        )}
+      </div>
+
       <div className="flex items-center justify-between">
         {deal.repName && (
           <div className="flex items-center gap-1.5">
@@ -301,12 +448,6 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
             <span className="text-[11px] text-[var(--color-text-muted)]">
               {deal.repName.split(" ")[0]}
             </span>
-          </div>
-        )}
-        {deal.expectedCloseDate && (
-          <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
-            <Calendar className="h-3 w-3" />
-            {dateShort(deal.expectedCloseDate)}
           </div>
         )}
       </div>
@@ -347,6 +488,127 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ============= LIST VIEW ============= */
+
+const STAGE_TONE_PILL: Record<string, string> = {
+  lead: "bg-zinc-500/10 text-zinc-600",
+  qualified: "bg-blue-500/10 text-blue-600",
+  proposal: "bg-violet-500/10 text-violet-600",
+  negotiation: "bg-amber-500/10 text-amber-600",
+  won: "bg-emerald-500/10 text-emerald-600",
+  lost: "bg-red-500/10 text-red-600",
+};
+
+function DealListView({ columns }: { columns: Column[] }) {
+  // Achata todos os deals em ordem do server (já vem ordenado por sortKey)
+  const allDeals = columns.flatMap((c) => c.deals);
+
+  if (allDeals.length === 0) {
+    return (
+      <div className="flex h-32 items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] text-sm text-[var(--color-text-dim)]">
+        Nenhum negócio para exibir.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+      {/* Header */}
+      <div className="hidden md:grid grid-cols-[1fr_180px_120px_120px_120px_100px] items-center gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+        <div>Negócio</div>
+        <div>Stage</div>
+        <div className="text-right">Valor</div>
+        <div className="text-right">Forecast</div>
+        <div>Dias</div>
+        <div className="text-right">Ações</div>
+      </div>
+
+      <ul className="divide-y divide-[var(--color-border)]">
+        {allDeals.map((d) => {
+          const stageLabel =
+            columns.find((c) => c.id === d.stage)?.label ?? d.stage;
+          const forecast = d.value * (d.probability / 100);
+          return (
+            <li
+              key={d.id}
+              className={cn(
+                "grid grid-cols-1 items-center gap-2 px-4 py-3 transition-colors hover:bg-[var(--color-surface-2)]/40 md:grid-cols-[1fr_180px_120px_120px_120px_100px] md:gap-4",
+                d.isStale && "bg-amber-500/5",
+              )}
+            >
+              <div className="min-w-0">
+                <Link
+                  href={`/pipeline/${d.id}/editar`}
+                  className="block truncate text-sm font-semibold hover:text-[var(--color-primary)]"
+                >
+                  {d.title}
+                </Link>
+                <div className="mt-0.5 truncate text-xs text-[var(--color-text-muted)]">
+                  {d.customerName ?? "—"}
+                  {d.repName && (
+                    <span className="ml-2 text-[var(--color-text-dim)]">
+                      · {d.repName.split(" ")[0]}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium",
+                    STAGE_TONE_PILL[d.stage] ?? STAGE_TONE_PILL.lead,
+                  )}
+                >
+                  {stageLabel}
+                </span>
+              </div>
+
+              <div className="text-right text-sm font-semibold tabular-nums">
+                {brl(d.value)}
+              </div>
+              <div className="text-right text-xs tabular-nums text-[var(--color-text-muted)]">
+                {d.stage !== "won" && d.stage !== "lost" ? brl(forecast) : "—"}
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 tabular-nums",
+                    d.isStale
+                      ? "bg-amber-500/15 text-amber-600 font-semibold"
+                      : "text-[var(--color-text-muted)]",
+                  )}
+                >
+                  {d.isStale && <AlertTriangle className="h-2.5 w-2.5" />}
+                  {d.daysInStage}d
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-1.5">
+                <Link
+                  href={`/pipeline/${d.id}/editar`}
+                  className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)]"
+                  title="Editar"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Link>
+                <Link
+                  href={`/clientes/${d.customerId}`}
+                  className="text-[var(--color-text-dim)] hover:text-[var(--color-primary)]"
+                  title="Ver cliente"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

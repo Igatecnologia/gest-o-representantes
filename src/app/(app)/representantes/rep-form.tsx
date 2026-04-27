@@ -65,6 +65,23 @@ export function RepForm({
             />
           </div>
 
+          <div>
+            <Label htmlFor="monthlyGoal">Meta mensal (R$)</Label>
+            <Input
+              id="monthlyGoal"
+              name="monthlyGoal"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0,00 = sem meta"
+              defaultValue={
+                initial?.monthlyGoalCents
+                  ? (initial.monthlyGoalCents / 100).toFixed(2)
+                  : ""
+              }
+            />
+          </div>
+
           <div className="flex items-end">
             <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
               <input
