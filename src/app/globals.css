@@ -99,6 +99,29 @@
   background: linear-gradient(180deg, transparent 0%, rgba(90,159,212,0.15) 50%, transparent 100%);
 }
 
+/* ============= DENSITY TOGGLE ============= */
+/* Aplicado via data-density no <html>. Default = comfortable.
+   Estratégia: ajustar font-size raiz + padding de tabelas + escala do
+   espaçamento principal. Componentes Tailwind herdam via rem. */
+[data-density="compact"] {
+  font-size: 14px; /* default 16px → reduz tudo proporcionalmente */
+}
+[data-density="spacious"] {
+  font-size: 17px; /* aumenta tudo proporcionalmente */
+}
+
+/* Tabelas têm padding fixo em px → ajusta diretamente */
+[data-density="compact"] table tr td,
+[data-density="compact"] table tr th {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+[data-density="spacious"] table tr td,
+[data-density="spacious"] table tr th {
+  padding-top: 1.25rem !important;
+  padding-bottom: 1.25rem !important;
+}
+
 /* ============= NATIVE INPUTS (date/time) ============= */
 /* Garante que o calendar picker e clock picker do navegador
    fiquem visíveis em ambos os temas. Sem color-scheme, o ícone

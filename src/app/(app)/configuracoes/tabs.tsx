@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lock, Shield } from "lucide-react";
+import { Lock, Shield, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/configuracoes", label: "Minha Conta", icon: Lock },
+  { href: "/configuracoes/aparencia", label: "Aparência", icon: Palette },
   { href: "/configuracoes/acessos", label: "Gerenciar Acessos", icon: Shield, adminOnly: true },
 ];
 

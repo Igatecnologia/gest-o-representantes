@@ -4,6 +4,8 @@ import * as React from "react";
 import { Search } from "lucide-react";
 import { Kbd } from "./ui";
 import { ThemeToggle } from "./theme-toggle";
+import { DensityToggle } from "./density-toggle";
+import { NotificationInbox } from "./notification-inbox";
 
 export function Topbar() {
   const openPalette = () => {
@@ -32,7 +34,9 @@ export function Topbar() {
           </div>
         </button>
 
-        <div className="ml-4 flex items-center gap-3">
+        <div className="ml-4 flex items-center gap-2">
+          <DensityToggle className="hidden md:inline-flex" />
+          <NotificationInbox />
           <ThemeToggle />
         </div>
       </div>
