@@ -10,7 +10,8 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const followUpCount = await getTodayFollowUpCount();
+  // Graceful: se tabela follow_ups não existir ainda, retorna 0
+  const followUpCount = await getTodayFollowUpCount().catch(() => 0);
   return (
     <div className="flex min-h-screen bg-[var(--color-bg)] bg-mesh-live">
       <Sidebar userName={user.name} role={user.role} followUpCount={followUpCount} />

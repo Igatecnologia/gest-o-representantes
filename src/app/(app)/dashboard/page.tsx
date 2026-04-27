@@ -90,7 +90,6 @@ export default async function DashboardPage() {
     expiringProposals,
     [avgTicket],
     recentSales,
-    todayFollowUps,
   ] = await Promise.all([
     // 1. Vendas do mes
     db.select({
@@ -171,24 +170,26 @@ export default async function DashboardPage() {
       .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
       .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
       .where(scopeSales(undefined)).orderBy(desc(schema.sales.createdAt)).limit(6),
-    // 12. Retornos do dia (pendentes + atrasados)
-    db.select({
-      id: schema.followUps.id,
-      customerName: schema.customers.name,
-      customerPhone: schema.customers.phone,
-      scheduledDate: schema.followUps.scheduledDate,
-      type: schema.followUps.type,
-      notes: schema.followUps.notes,
-    }).from(schema.followUps)
-      .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
-      .where(and(
-        eq(schema.followUps.status, "pending"),
-        lte(schema.followUps.scheduledDate, new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 23, 59, 59, 999)),
-        ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
-      ))
-      .orderBy(asc(schema.followUps.scheduledDate))
-      .limit(5),
   ]);
+
+  // Retornos do dia (separado — tabela pode não existir ainda)
+  const todayFollowUps = await db.select({
+    id: schema.followUps.id,
+    customerName: schema.customers.name,
+    customerPhone: schema.customers.phone,
+    scheduledDate: schema.followUps.scheduledDate,
+    type: schema.followUps.type,
+    notes: schema.followUps.notes,
+  }).from(schema.followUps)
+    .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
+    .where(and(
+      eq(schema.followUps.status, "pending"),
+      lte(schema.followUps.scheduledDate, new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 23, 59, 59, 999)),
+      ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
+    ))
+    .orderBy(asc(schema.followUps.scheduledDate))
+    .limit(5)
+    .catch(() => [] as { id: string; customerName: string | null; customerPhone: string | null; scheduledDate: Date | null; type: string; notes: string | null }[]);
 
   const delta = salesLastMonth && salesLastMonth.total > 0
     ? ((salesMonth.total - salesLastMonth.total) / salesLastMonth.total) * 100
