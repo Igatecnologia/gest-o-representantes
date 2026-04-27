@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { redirect } from "next/navigation";
@@ -46,7 +47,7 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -56,13 +57,13 @@ export async function getSession(): Promise<SessionPayload | null> {
   } catch {
     return null;
   }
-}
+});
 
-export async function requireUser() {
+export const requireUser = cache(async () => {
   const session = await getSession();
   if (!session) redirect("/login");
   return session;
-}
+});
 
 export async function requireAdmin() {
   const session = await requireUser();
@@ -80,7 +81,7 @@ export function isAdmin(session: SessionPayload): boolean {
  * Retorna o `representative` vinculado ao usuário logado (ou null se for admin
  * sem vínculo, ou se o vínculo não existir).
  */
-export async function getCurrentRep(session: SessionPayload) {
+export const getCurrentRep = cache(async (session: SessionPayload) => {
   const [rep] = await db
     .select()
     .from(schema.representatives)
@@ -90,14 +91,14 @@ export async function getCurrentRep(session: SessionPayload) {
     ))
     .limit(1);
   return rep ?? null;
-}
+});
 
 /**
  * Retorna `{ isAdmin, repId }`. Admin pode não ter `repId`.
  * Rep sempre tem `repId` — se não tiver, bloqueia acesso (estado inválido).
  * Verifica se o usuário ainda está ativo no banco (proteção contra tokens de contas desativadas).
  */
-export async function requireScope() {
+export const requireScope = cache(async () => {
   const session = await requireUser();
 
   // Verificar se usuário ainda está ativo e role não mudou
@@ -129,7 +130,7 @@ export async function requireScope() {
     redirect("/login");
   }
   return { session, isAdmin: false as const, repId: rep.id };
-}
+});
 
 export async function findUserByEmail(email: string) {
   const [row] = await db
