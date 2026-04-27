@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { hash } from "bcrypt-ts";
 import { db, schema } from "@/lib/db";
@@ -83,6 +83,7 @@ export async function createRepAction(_prev: unknown, formData: FormData) {
     active: d.active === "on",
   });
 
+  revalidateTag("representatives");
   revalidatePath("/representantes");
   redirect("/representantes");
 }
@@ -117,6 +118,7 @@ export async function updateRepAction(
     })
     .where(eq(schema.representatives.id, id));
 
+  revalidateTag("representatives");
   revalidatePath("/representantes");
   redirect("/representantes");
 }
@@ -162,5 +164,6 @@ export async function deleteRepAction(formData: FormData) {
   }
 
   await audit(session, "delete", "representative", id);
+  revalidateTag("representatives");
   revalidatePath("/representantes");
 }

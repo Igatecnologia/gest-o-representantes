@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db";
 import { eq, count } from "drizzle-orm";
@@ -42,6 +42,7 @@ export async function createProductAction(_prev: unknown, formData: FormData) {
     active: parsed.data.active === "on",
   });
 
+  revalidateTag("products");
   revalidatePath("/produtos");
   redirect("/produtos");
 }
@@ -77,6 +78,7 @@ export async function updateProductAction(
     })
     .where(eq(schema.products.id, id));
 
+  revalidateTag("products");
   revalidatePath("/produtos");
   redirect("/produtos");
 }
@@ -102,5 +104,6 @@ export async function deleteProductAction(formData: FormData) {
 
   await db.delete(schema.products).where(eq(schema.products.id, id));
   await audit(session, "delete", "product", id);
+  revalidateTag("products");
   revalidatePath("/produtos");
 }
