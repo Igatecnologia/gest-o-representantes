@@ -118,7 +118,7 @@ export function FollowUpList({
               {count > 0 && (
                 <span className={`ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
                   f.id === "overdue" && count > 0
-                    ? "bg-red-500/20 text-red-400"
+                    ? "bg-[var(--color-danger)]/20 text-[var(--color-danger)]"
                     : isActive
                     ? "bg-[var(--color-primary)]/20 text-[var(--color-primary)]"
                     : "bg-[var(--color-surface-3)] text-[var(--color-text-muted)]"
@@ -172,12 +172,12 @@ export function FollowUpList({
 
                   {/* Data */}
                   <div className={`mt-3 flex items-center gap-2 text-xs font-medium ${
-                    overdue ? "text-red-400" : "text-[var(--color-text-muted)]"
+                    overdue ? "text-[var(--color-danger)]" : "text-[var(--color-text-muted)]"
                   }`}>
                     <CalendarClock className="h-3.5 w-3.5" />
                     {overdue && <AlertTriangle className="h-3 w-3" />}
                     {fu.scheduledDate ? dateShort(fu.scheduledDate) : "—"}
-                    {overdue && <span className="text-red-400">(atrasado)</span>}
+                    {overdue && <span className="text-[var(--color-danger)]">(atrasado)</span>}
                   </div>
 
                   {/* Notas */}
@@ -214,7 +214,7 @@ export function FollowUpList({
                         setResultText("");
                         setRescheduleDate("");
                       }}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-emerald-500/10 px-2.5 py-2 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-success)]/10 px-2.5 py-2 text-xs font-medium text-[var(--color-success)] transition-colors hover:bg-[var(--color-success)]/20"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       Feito
@@ -232,7 +232,7 @@ export function FollowUpList({
                       <input type="hidden" name="id" value={fu.id} />
                       <button
                         type="submit"
-                        className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-red-500/10 px-2.5 py-2 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
+                        className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-danger)]/10 px-2.5 py-2 text-xs font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/20"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

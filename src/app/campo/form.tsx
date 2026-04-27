@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createFieldCustomerAction } from "@/lib/actions/field";
-import { maskCep, maskCnpj, maskPhone } from "@/lib/utils";
+import { maskCep, maskCnpj, maskCpf, maskPhone } from "@/lib/utils";
 import {
   Building2,
   Check,
@@ -19,7 +19,10 @@ import { ScaleSpring, FadeUp } from "@/components/motion";
 
 const initial: { error?: string; ok?: boolean } = {};
 
+type PersonType = "pj" | "pf";
+
 type Form = {
+  personType: PersonType;
   name: string;
   tradeName: string;
   document: string;
@@ -38,6 +41,7 @@ type Form = {
 };
 
 const empty: Form = {
+  personType: "pj",
   name: "",
   tradeName: "",
   document: "",
@@ -279,7 +283,7 @@ export function FieldForm() {
         <input type="hidden" name="latitude" value={f.latitude} />
         <input type="hidden" name="longitude" value={f.longitude} />
 
-        {/* CNPJ */}
+        {/* Identificação */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary)]" />
@@ -288,48 +292,78 @@ export function FieldForm() {
             </h3>
           </div>
 
+          {/* Seletor PF / PJ */}
+          <div className="flex rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)]/50 p-1">
+            <button
+              type="button"
+              onClick={() => setF((p) => ({ ...p, personType: "pj", document: "", tradeName: "" }))}
+              className={`flex-1 rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium transition-all ${
+                f.personType === "pj"
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              Pessoa Jurídica
+            </button>
+            <button
+              type="button"
+              onClick={() => setF((p) => ({ ...p, personType: "pf", document: "", tradeName: "" }))}
+              className={`flex-1 rounded-[var(--radius-sm)] px-4 py-2.5 text-sm font-medium transition-all ${
+                f.personType === "pf"
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              Pessoa Física
+            </button>
+          </div>
+
           <div>
             <label className="mb-1.5 block text-xs text-[var(--color-text-muted)]">
-              CNPJ
+              {f.personType === "pj" ? "CNPJ" : "CPF"}
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 name="document"
                 inputMode="numeric"
-                placeholder="00.000.000/0000-00"
+                placeholder={f.personType === "pj" ? "00.000.000/0000-00" : "000.000.000-00"}
                 value={f.document}
-                onChange={(e) => set("document", maskCnpj(e.target.value))}
+                onChange={(e) => set("document", f.personType === "pj" ? maskCnpj(e.target.value) : maskCpf(e.target.value))}
                 className="flex-1 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 font-mono text-base"
               />
-              <button
-                type="button"
-                onClick={lookupCnpj}
-                disabled={loadingCnpj}
-                className="flex h-12 w-12 items-center justify-center rounded-[var(--radius)] bg-[var(--color-primary)] text-white disabled:opacity-50 active:scale-95"
-              >
-                {loadingCnpj ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Search className="h-5 w-5" />
-                )}
-              </button>
+              {f.personType === "pj" && (
+                <button
+                  type="button"
+                  onClick={lookupCnpj}
+                  disabled={loadingCnpj}
+                  className="flex h-12 w-12 items-center justify-center rounded-[var(--radius)] bg-[var(--color-primary)] text-white disabled:opacity-50 active:scale-95"
+                >
+                  {loadingCnpj ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Search className="h-5 w-5" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
           <MobileField
-            label="Razão social *"
+            label={f.personType === "pj" ? "Razão social *" : "Nome completo *"}
             name="name"
             value={f.name}
             onChange={(v) => set("name", v)}
             required
           />
-          <MobileField
-            label="Nome fantasia"
-            name="tradeName"
-            value={f.tradeName}
-            onChange={(v) => set("tradeName", v)}
-          />
+          {f.personType === "pj" && (
+            <MobileField
+              label="Nome fantasia"
+              name="tradeName"
+              value={f.tradeName}
+              onChange={(v) => set("tradeName", v)}
+            />
+          )}
           <MobileField
             label="Telefone"
             name="phone"

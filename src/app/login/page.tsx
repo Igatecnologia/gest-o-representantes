@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { loginAction } from "@/lib/actions/auth";
 import { Button, Input, Label } from "@/components/ui";
-import { Lock, Mail, Sparkles, TrendingUp, Users, Zap, Shield } from "lucide-react";
+import { Lock, Mail, Shield } from "lucide-react";
 
 const initialState: { error?: string } = {};
 
@@ -40,20 +40,14 @@ export default function LoginPage() {
 
         <div className="relative z-10 p-10">
           <h2 className="mb-4 text-5xl font-bold tracking-tight text-white leading-[1.1]">
-            Vendas com
+            Gestão comercial
             <br />
-            <span className="text-white/60">clareza total.</span>
+            <span className="text-white/60">simplificada.</span>
           </h2>
-          <p className="mb-12 max-w-md text-base text-white/50 leading-relaxed">
-            Pipeline, comissões e representantes numa plataforma
-            unificada — feita para equipes comerciais que precisam de resultados.
+          <p className="max-w-md text-base text-white/50 leading-relaxed">
+            Controle seus clientes, propostas, vendas e comissões
+            em um só lugar — do primeiro contato ao fechamento.
           </p>
-
-          <div className="grid grid-cols-3 gap-3 max-w-lg">
-            <Feature icon={Zap} label="Propostas em minutos" />
-            <Feature icon={TrendingUp} label="Dashboard em tempo real" />
-            <Feature icon={Users} label="Ranking por rep" />
-          </div>
         </div>
 
         <div className="relative z-10 flex items-center gap-2 p-10 text-xs text-white/30">
@@ -79,10 +73,6 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/80 px-3 py-1 text-[11px] text-[var(--color-text-muted)] backdrop-blur-sm">
-              <Sparkles className="h-3 w-3 text-[var(--color-primary)]" />
-              Entrar na plataforma
-            </div>
             <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
             <p className="mt-2 text-sm text-[var(--color-text-muted)] leading-relaxed">
               Use sua conta interna para acessar o painel.
@@ -123,7 +113,7 @@ export default function LoginPage() {
             </div>
 
             {state.error && (
-              <p className="rounded-[var(--radius)] border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-300">
+              <p className="rounded-[var(--radius)] border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/8 px-4 py-3 text-sm text-[var(--color-danger)]">
                 {state.error}
               </p>
             )}
@@ -139,17 +129,3 @@ export default function LoginPage() {
   );
 }
 
-function Feature({
-  icon: Icon,
-  label,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-}) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xl transition-colors hover:bg-white/8 hover:border-white/15">
-      <Icon className="mb-2.5 h-4 w-4 text-white/70" />
-      <div className="text-[11px] font-medium leading-snug text-white/70">{label}</div>
-    </div>
-  );
-}

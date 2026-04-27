@@ -31,27 +31,21 @@ export function NewFollowUpForm({
     setLoading(true);
     setError("");
 
-    try {
-      const result = await createFollowUpAction({
-        customerId,
-        proposalId: defaultProposalId,
-        dealId: defaultDealId,
-        scheduledDate,
-        type,
-        notes,
-      });
+    const result = await createFollowUpAction({
+      customerId,
+      proposalId: defaultProposalId,
+      dealId: defaultDealId,
+      scheduledDate,
+      type,
+      notes,
+    });
 
-      if (result?.error) {
-        setError(result.error);
-        setLoading(false);
-      } else {
-        // Redireciona para filtro "todos" para o retorno aparecer independente da data
-        router.push("/retornos?filter=all");
-        router.refresh();
-      }
-    } catch {
-      setError("Erro ao salvar retorno. Tente novamente.");
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
+    } else {
+      router.push("/retornos?filter=all");
+      router.refresh();
     }
   }
 
