@@ -1,8 +1,60 @@
-"use client";
-
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Sparkline inline em SVG — evita carregar Recharts (~120KB) só pra desenhar
+// uma linha. Para o caso simples (KPI card) o ganho de bundle compensa.
+function Sparkline({
+  data,
+  stroke,
+  fill,
+  gradientId,
+}: {
+  data: number[];
+  stroke: string;
+  fill: string;
+  gradientId: string;
+}) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const last = data.length - 1;
+  const points = data
+    .map((v, i) => {
+      const x = (i / last) * 100;
+      const y = 100 - ((v - min) / range) * 90 - 5; // padding 5% topo e baixo
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" L ");
+  const linePath = `M ${points}`;
+  const areaPath = `${linePath} L 100,100 L 0,100 Z`;
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="h-full w-full"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={fill} stopOpacity={0.8} />
+          <stop offset="100%" stopColor={fill} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
 
 export type StatTone = "blue" | "emerald" | "amber" | "violet" | "cyan" | "rose";
 
@@ -78,7 +130,6 @@ export function StatCard({
   icon?: React.ReactNode;
 }) {
   const cfg = TONE_CONFIG[tone];
-  const data = (sparkline ?? []).map((v, i) => ({ i, v }));
   const up = (delta ?? 0) >= 0;
   const gradientId = `g-${label.replace(/\s+/g, "")}`;
 
@@ -124,23 +175,12 @@ export function StatCard({
 
       {sparkline && sparkline.length > 1 && (
         <div className="mt-3 h-10 -mx-1">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={cfg.sparkFill} stopOpacity={0.8} />
-                  <stop offset="100%" stopColor={cfg.sparkFill} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey="v"
-                stroke={cfg.sparkStroke}
-                strokeWidth={1.5}
-                fill={`url(#${gradientId})`}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <Sparkline
+            data={sparkline}
+            stroke={cfg.sparkStroke}
+            fill={cfg.sparkFill}
+            gradientId={gradientId}
+          />
         </div>
       )}
     </div>

@@ -99,6 +99,43 @@
   background: linear-gradient(180deg, transparent 0%, rgba(90,159,212,0.15) 50%, transparent 100%);
 }
 
+/* ============= NATIVE INPUTS (date/time) ============= */
+/* Garante que o calendar picker e clock picker do navegador
+   fiquem visíveis em ambos os temas. Sem color-scheme, o ícone
+   do picker fica invisível em dark mode no Chrome/Edge. */
+:root { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+
+/* Reforço explícito nos inputs nativos com picker */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  color-scheme: light;
+}
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="datetime-local"],
+[data-theme="dark"] input[type="month"],
+[data-theme="dark"] input[type="week"] {
+  color-scheme: dark;
+}
+
+/* Cursor pointer no ícone do picker */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 [data-theme="dark"] .skeleton {
   background: linear-gradient(90deg, #22262e 0%, #2c3039 50%, #22262e 100%);
   background-size: 200% 100%;

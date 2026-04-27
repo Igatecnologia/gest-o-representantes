@@ -1,4 +1,5 @@
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { db, schema } from "@/lib/db";
 import { and, eq, gte, lte, sql, desc, asc, SQL } from "drizzle-orm";
 import {
@@ -15,7 +16,16 @@ import {
   Table,
 } from "@/components/ui";
 import { StatCard } from "@/components/stat-card";
-import { RevenueChart } from "./revenue-chart";
+// Lazy load Recharts (~120KB) — só carrega quando dashboard é renderizado,
+// fora do shared chunk de outras páginas
+const RevenueChart = nextDynamic(
+  () => import("./revenue-chart").then((m) => ({ default: m.RevenueChart })),
+  {
+    loading: () => (
+      <div className="h-full w-full animate-pulse rounded-lg bg-[var(--color-surface-2)]" />
+    ),
+  },
+);
 import { brl, dateShort } from "@/lib/utils";
 import {
   TrendingUp,
