@@ -27,15 +27,15 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "INDICADORES", icon: LayoutDashboard },
+  { href: "/representantes", label: "REPRESENTANTES", icon: Users, adminOnly: true },
+  { href: "/clientes", label: "CLIENTES", icon: Building2 },
+  { href: "/produtos", label: "PRODUTOS", icon: Package, adminOnly: true },
   { href: "/pipeline", label: "PIPELINE", icon: Kanban },
   { href: "/propostas", label: "PROPOSTAS", icon: FileText },
   { href: "/retornos", label: "RETORNOS", icon: CalendarClock },
-  { href: "/clientes", label: "CLIENTES", icon: Building2 },
   { href: "/vendas", label: "VENDAS", icon: Receipt },
   { href: "/comissoes", label: "COMISSÕES", icon: Wallet },
-  { href: "/representantes", label: "REPRESENTANTES", icon: Users, adminOnly: true },
-  { href: "/produtos", label: "PRODUTOS", icon: Package, adminOnly: true },
+  { href: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
   { href: "/configuracoes", label: "CONFIGURAÇÕES", icon: Settings },
 ];
 
