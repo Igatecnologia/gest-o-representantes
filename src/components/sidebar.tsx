@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { href: "/vendas", label: "VENDAS", icon: Receipt },
   { href: "/comissoes", label: "COMISSÕES", icon: Wallet },
   { href: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
+  { href: "/clientes/mapa", label: "MAPA", icon: MapPin },
   { href: "/campo", label: "CAMPO", icon: MapPin },
   { href: "/configuracoes", label: "CONFIGURAÇÕES", icon: Settings },
 ];

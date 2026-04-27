@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
 import { desc, eq, or, like, sql, and, gte, isNull } from "drizzle-orm";
-import { Building2, Plus, Users, MapPin, UserX } from "lucide-react";
+import { Building2, Plus, Users, MapPin, UserX, Map } from "lucide-react";
 import { Button, PageHeader } from "@/components/ui";
 import { PageStats, type PageStat } from "@/components/page-stats";
 import { requireScope } from "@/lib/auth";
@@ -112,12 +112,26 @@ export default async function CustomersPage({
         description={`${total} empresa(s) na base`}
         icon={Building2}
         actions={
-          <Link href="/clientes/novo">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Novo cliente
-            </Button>
-          </Link>
+          <>
+            <Link href="/clientes/mapa">
+              <Button variant="secondary">
+                <Map className="h-4 w-4" />
+                Mapa
+              </Button>
+            </Link>
+            <Link href="/clientes/importar">
+              <Button variant="ghost">
+                <Plus className="h-4 w-4" />
+                Importar CSV
+              </Button>
+            </Link>
+            <Link href="/clientes/novo">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Novo cliente
+              </Button>
+            </Link>
+          </>
         }
       />
       <PageStats stats={stats} />
