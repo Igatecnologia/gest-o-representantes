@@ -72,11 +72,14 @@ export function Sidebar({
           <img
             src="/logo-iga.png"
             alt="IGA"
-            width={28}
-            height={28}
-            className="h-7 w-7 shrink-0 object-contain"
+            width={36}
+            height={36}
+            className="h-9 w-9 shrink-0 rounded object-contain"
           />
-          <span className="text-sm font-bold tracking-tight text-[var(--color-text)]">IGA</span>
+          <div>
+            <span className="text-sm font-bold tracking-tight text-[var(--color-text)]">IGA</span>
+            <span className="ml-1 text-[10px] text-[var(--color-text-dim)]">Representantes</span>
+          </div>
         </div>
 
         {/* Nav */}
