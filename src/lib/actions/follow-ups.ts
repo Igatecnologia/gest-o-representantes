@@ -148,126 +148,138 @@ export async function deleteFollowUpAction(formData: FormData) {
 type FollowUpFilter = "today" | "week" | "month" | "overdue" | "all";
 
 export async function getFollowUps(filter: FollowUpFilter = "today") {
-  const { isAdmin, repId } = await requireScope();
+  try {
+    const { isAdmin, repId } = await requireScope();
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
 
-  const weekEnd = new Date(todayStart);
-  weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()));
-  weekEnd.setHours(23, 59, 59, 999);
+    const weekEnd = new Date(todayStart);
+    weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()));
+    weekEnd.setHours(23, 59, 59, 999);
 
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  let dateCondition;
-  switch (filter) {
-    case "today":
-      dateCondition = and(
-        gte(schema.followUps.scheduledDate, todayStart),
-        lte(schema.followUps.scheduledDate, todayEnd)
-      );
-      break;
-    case "week":
-      dateCondition = and(
-        gte(schema.followUps.scheduledDate, todayStart),
-        lte(schema.followUps.scheduledDate, weekEnd)
-      );
-      break;
-    case "month":
-      dateCondition = and(
-        gte(schema.followUps.scheduledDate, todayStart),
-        lte(schema.followUps.scheduledDate, monthEnd)
-      );
-      break;
-    case "overdue":
-      dateCondition = sql`${schema.followUps.scheduledDate} < ${todayStart.getTime()}`;
-      break;
-    case "all":
-      dateCondition = undefined;
-      break;
+    let dateCondition;
+    switch (filter) {
+      case "today":
+        dateCondition = and(
+          gte(schema.followUps.scheduledDate, todayStart),
+          lte(schema.followUps.scheduledDate, todayEnd)
+        );
+        break;
+      case "week":
+        dateCondition = and(
+          gte(schema.followUps.scheduledDate, todayStart),
+          lte(schema.followUps.scheduledDate, weekEnd)
+        );
+        break;
+      case "month":
+        dateCondition = and(
+          gte(schema.followUps.scheduledDate, todayStart),
+          lte(schema.followUps.scheduledDate, monthEnd)
+        );
+        break;
+      case "overdue":
+        dateCondition = sql`${schema.followUps.scheduledDate} < ${todayStart.getTime()}`;
+        break;
+      case "all":
+        dateCondition = undefined;
+        break;
+    }
+
+    const conditions = [
+      eq(schema.followUps.status, "pending"),
+      ...(dateCondition ? [dateCondition] : []),
+      ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
+    ];
+
+    const results = await db
+      .select({
+        id: schema.followUps.id,
+        customerId: schema.followUps.customerId,
+        customerName: schema.customers.name,
+        customerPhone: schema.customers.phone,
+        representativeId: schema.followUps.representativeId,
+        repName: schema.representatives.name,
+        proposalId: schema.followUps.proposalId,
+        dealId: schema.followUps.dealId,
+        scheduledDate: schema.followUps.scheduledDate,
+        type: schema.followUps.type,
+        status: schema.followUps.status,
+        notes: schema.followUps.notes,
+        createdAt: schema.followUps.createdAt,
+      })
+      .from(schema.followUps)
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
+      .leftJoin(schema.representatives, eq(schema.representatives.id, schema.followUps.representativeId))
+      .where(and(...conditions))
+      .orderBy(asc(schema.followUps.scheduledDate))
+      .limit(50);
+
+    return results;
+  } catch {
+    return [];
   }
-
-  const conditions = [
-    eq(schema.followUps.status, "pending"),
-    ...(dateCondition ? [dateCondition] : []),
-    ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
-  ];
-
-  const results = await db
-    .select({
-      id: schema.followUps.id,
-      customerId: schema.followUps.customerId,
-      customerName: schema.customers.name,
-      customerPhone: schema.customers.phone,
-      representativeId: schema.followUps.representativeId,
-      repName: schema.representatives.name,
-      proposalId: schema.followUps.proposalId,
-      dealId: schema.followUps.dealId,
-      scheduledDate: schema.followUps.scheduledDate,
-      type: schema.followUps.type,
-      status: schema.followUps.status,
-      notes: schema.followUps.notes,
-      createdAt: schema.followUps.createdAt,
-    })
-    .from(schema.followUps)
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
-    .leftJoin(schema.representatives, eq(schema.representatives.id, schema.followUps.representativeId))
-    .where(and(...conditions))
-    .orderBy(asc(schema.followUps.scheduledDate))
-    .limit(50);
-
-  return results;
 }
 
 export async function getFollowUpCounts() {
-  const { isAdmin, repId } = await requireScope();
+  try {
+    const { isAdmin, repId } = await requireScope();
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
 
-  const weekEnd = new Date(todayStart);
-  weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()));
-  weekEnd.setHours(23, 59, 59, 999);
+    const weekEnd = new Date(todayStart);
+    weekEnd.setDate(weekEnd.getDate() + (7 - weekEnd.getDay()));
+    weekEnd.setHours(23, 59, 59, 999);
 
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  const scopeCondition = isAdmin
-    ? eq(schema.followUps.status, "pending")
-    : and(eq(schema.followUps.status, "pending"), eq(schema.followUps.representativeId, repId));
+    const scopeCondition = isAdmin
+      ? eq(schema.followUps.status, "pending")
+      : and(eq(schema.followUps.status, "pending"), eq(schema.followUps.representativeId, repId));
 
-  const [counts] = await db
-    .select({
-      today: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${todayEnd.getTime()} then 1 end)`,
-      week: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${weekEnd.getTime()} then 1 end)`,
-      month: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${monthEnd.getTime()} then 1 end)`,
-      overdue: sql<number>`count(case when ${schema.followUps.scheduledDate} < ${todayStart.getTime()} then 1 end)`,
-    })
-    .from(schema.followUps)
-    .where(scopeCondition);
+    const [counts] = await db
+      .select({
+        today: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${todayEnd.getTime()} then 1 end)`,
+        week: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${weekEnd.getTime()} then 1 end)`,
+        month: sql<number>`count(case when ${schema.followUps.scheduledDate} >= ${todayStart.getTime()} and ${schema.followUps.scheduledDate} <= ${monthEnd.getTime()} then 1 end)`,
+        overdue: sql<number>`count(case when ${schema.followUps.scheduledDate} < ${todayStart.getTime()} then 1 end)`,
+      })
+      .from(schema.followUps)
+      .where(scopeCondition);
 
-  return counts ?? { today: 0, week: 0, month: 0, overdue: 0 };
+    return counts ?? { today: 0, week: 0, month: 0, overdue: 0 };
+  } catch {
+    return { today: 0, week: 0, month: 0, overdue: 0 };
+  }
 }
 
 export async function getTodayFollowUpCount() {
-  const { isAdmin, repId } = await requireScope();
+  try {
+    const { isAdmin, repId } = await requireScope();
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86400000 - 1);
 
-  const conditions = [
-    eq(schema.followUps.status, "pending"),
-    gte(schema.followUps.scheduledDate, todayStart),
-    lte(schema.followUps.scheduledDate, todayEnd),
-    ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
-  ];
+    const conditions = [
+      eq(schema.followUps.status, "pending"),
+      gte(schema.followUps.scheduledDate, todayStart),
+      lte(schema.followUps.scheduledDate, todayEnd),
+      ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
+    ];
 
-  const [result] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(schema.followUps)
-    .where(and(...conditions));
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.followUps)
+      .where(and(...conditions));
 
-  return result?.count ?? 0;
+    return result?.count ?? 0;
+  } catch {
+    return 0;
+  }
 }
