@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
 import { FadeUp, StaggerContainer } from "@/components/motion";
+import { SwipeableCard } from "@/components/swipeable-card";
 import {
   CalendarClock,
   CheckCircle2,
@@ -185,6 +187,25 @@ export function FollowUpList({
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
+  async function handleSwipeSkip(fuId: string) {
+    const fd = new FormData();
+    fd.set("id", fuId);
+    await skipFollowUpAction(fd);
+    toast.info("Retorno pulado");
+  }
+
+  async function handleSwipeDelete(fuId: string) {
+    if (!confirm("Excluir este retorno?")) return;
+    const fd = new FormData();
+    fd.set("id", fuId);
+    await deleteFollowUpAction(fd);
+    toast.success("Retorno excluído");
+  }
+
+  function tel(phone: string) {
+    window.location.href = `tel:${phone.replace(/\D/g, "")}`;
+  }
+
   return (
     <div className="space-y-6">
       {/* TABS — Pendentes vs Histórico */}
@@ -350,8 +371,48 @@ export function FollowUpList({
             const isPending = fu.status === "pending";
             const hasPhone = !!fu.customerPhone;
 
+            const swipeRight = isPending
+              ? [
+                  {
+                    label: "Pular",
+                    icon: SkipForward,
+                    color: "bg-zinc-500",
+                    onAction: () => handleSwipeSkip(fu.id),
+                  },
+                  {
+                    label: "Excluir",
+                    icon: Trash2,
+                    color: "bg-[var(--color-danger)]",
+                    onAction: () => handleSwipeDelete(fu.id),
+                  },
+                ]
+              : [];
+
+            const swipeLeft =
+              isPending && hasPhone && fu.customerPhone
+                ? [
+                    {
+                      label: "WhatsApp",
+                      icon: MessageSquare,
+                      color: "bg-[#25D366]",
+                      onAction: () => openWhatsApp(fu),
+                    },
+                    {
+                      label: "Ligar",
+                      icon: Phone,
+                      color: "bg-[var(--color-primary)]",
+                      onAction: () => tel(fu.customerPhone!),
+                    },
+                  ]
+                : [];
+
             return (
               <FadeUp key={fu.id}>
+                <SwipeableCard
+                  rightActions={swipeRight}
+                  leftActions={swipeLeft}
+                  className="rounded-[var(--radius-lg)]"
+                >
                 <Card
                   className={`group relative overflow-hidden transition-all ${
                     overdue
@@ -562,6 +623,7 @@ export function FollowUpList({
                     </form>
                   )}
                 </Card>
+                </SwipeableCard>
               </FadeUp>
             );
           })}

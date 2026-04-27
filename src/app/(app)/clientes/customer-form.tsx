@@ -1,12 +1,21 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, Card, Input, Label, Select, Textarea } from "@/components/ui";
 import { maskCep, maskCnpj, maskCpf, maskPhone } from "@/lib/utils";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
-import { Check, Loader2, MapPin, Search, Sparkles } from "lucide-react";
+import { useFormDraft } from "@/lib/use-form-draft";
+import {
+  Check,
+  Loader2,
+  MapPin,
+  Search,
+  Sparkles,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import type { Customer } from "@/lib/db/schema";
 
 type ActionResult = { error?: string } | undefined;
@@ -78,13 +87,28 @@ export function CustomerForm({
     action,
     undefined
   );
-  const [f, setF] = useState<FormState>(fromCustomer(initial));
+
+  // Autosave somente no novo (não no edit — initial vem do banco e seria
+  // confuso recuperar draft após edição).
+  const isNewCustomer = !initial;
+  const [f, setF, clearDraft, draftRestored] = useFormDraft<FormState>(
+    "clientes-novo",
+    fromCustomer(initial),
+    isNewCustomer,
+  );
   const [dirty, setDirty] = useState(false);
   const [loadingCnpj, startCnpj] = useTransition();
   const [loadingCep, startCep] = useTransition();
   const [cnpjOk, setCnpjOk] = useState(Boolean(initial?.document));
   const [cepOk, setCepOk] = useState(Boolean(initial?.cep));
   useUnsavedWarning(dirty && !pending);
+
+  // Limpa draft após submit bem-sucedido
+  useEffect(() => {
+    if (state && !state.error && !pending && isNewCustomer) {
+      clearDraft();
+    }
+  }, [state, pending, isNewCustomer, clearDraft]);
 
   const isPJ = f.personType === "pj";
 
@@ -175,6 +199,34 @@ export function CustomerForm({
 
   return (
     <Card className="max-w-3xl">
+      {/* Banner de draft recuperado */}
+      {draftRestored && isNewCustomer && (
+        <div className="mb-4 flex items-start gap-3 rounded-[var(--radius-sm)] border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 px-3 py-2.5">
+          <RotateCcw className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+          <div className="flex-1 text-xs">
+            <div className="font-semibold text-[var(--color-text)]">
+              Continuando rascunho
+            </div>
+            <p className="mt-0.5 text-[var(--color-text-muted)]">
+              Recuperamos os dados que você estava preenchendo. Pode continuar
+              ou descartar pra começar do zero.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              clearDraft();
+              setF(fromCustomer(undefined));
+              setDirty(false);
+            }}
+            className="rounded-md p-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-danger)]"
+            title="Descartar rascunho"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <form action={formAction} className="space-y-6">
         <section>
           <div className="mb-3 flex items-center gap-2">
