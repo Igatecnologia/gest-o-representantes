@@ -193,6 +193,43 @@ export const proposalItems = sqliteTable("proposal_items", {
   index("idx_proposal_items_proposal").on(t.proposalId),
 ]);
 
+export const followUps = sqliteTable("follow_ups", {
+  id: id(),
+  customerId: text("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  representativeId: text("representative_id")
+    .notNull()
+    .references(() => representatives.id, { onDelete: "restrict" }),
+  proposalId: text("proposal_id").references(() => proposals.id, { onDelete: "set null" }),
+  dealId: text("deal_id").references(() => deals.id, { onDelete: "set null" }),
+  // Data agendada para o retorno
+  scheduledDate: integer("scheduled_date", { mode: "timestamp_ms" }).notNull(),
+  // proposal_sent | negotiation | post_sale | general
+  type: text("type").notNull().default("general"),
+  // pending | done | skipped
+  status: text("status").notNull().default("pending"),
+  notes: text("notes"),
+  result: text("result"), // o que aconteceu no retorno
+  completedAt: integer("completed_at", { mode: "timestamp_ms" }),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_followups_rep").on(t.representativeId),
+  index("idx_followups_customer").on(t.customerId),
+  index("idx_followups_status").on(t.status),
+  index("idx_followups_scheduled").on(t.scheduledDate),
+  index("idx_followups_rep_status_scheduled").on(t.representativeId, t.status, t.scheduledDate),
+]);
+
+export const FOLLOWUP_TYPES = [
+  { id: "proposal_sent", label: "Proposta enviada" },
+  { id: "negotiation", label: "Negociação" },
+  { id: "post_sale", label: "Pós-venda" },
+  { id: "general", label: "Geral" },
+] as const;
+
+export type FollowUpType = (typeof FOLLOWUP_TYPES)[number]["id"];
+
 export const auditLogs = sqliteTable("audit_logs", {
   id: id(),
   userId: text("user_id").notNull(),
@@ -218,6 +255,7 @@ export type Deal = typeof deals.$inferSelect;
 export type Proposal = typeof proposals.$inferSelect;
 export type ProposalItem = typeof proposalItems.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
+export type FollowUp = typeof followUps.$inferSelect;
 
 export const DEAL_STAGES = [
   { id: "lead", label: "Lead", probability: 10 },

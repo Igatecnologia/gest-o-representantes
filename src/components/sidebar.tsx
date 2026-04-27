@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronsLeft,
   ChevronsRight,
+  CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, Badge } from "./ui";
@@ -36,6 +37,7 @@ const NAV: NavItem[] = [
   { href: "/produtos", label: "Produtos", icon: Package, adminOnly: true },
   { href: "/pipeline", label: "Pipeline", icon: Kanban },
   { href: "/propostas", label: "Propostas", icon: FileText },
+  { href: "/retornos", label: "Retornos", icon: CalendarClock },
   { href: "/vendas", label: "Vendas", icon: Receipt },
   { href: "/comissoes", label: "Comissões", icon: Wallet },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -53,9 +55,11 @@ const MOBILE_TABS: NavItem[] = [
 export function Sidebar({
   userName,
   role,
+  followUpCount = 0,
 }: {
   userName: string;
   role: "admin" | "manager" | "rep";
+  followUpCount?: number;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = React.useState(false);
@@ -134,7 +138,15 @@ export function Sidebar({
                     active ? "text-[var(--color-primary)]" : "group-hover:text-[var(--color-text)]"
                   )}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                {!collapsed && item.href === "/retornos" && followUpCount > 0 && (
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)]/15 px-1.5 text-[10px] font-bold text-[var(--color-primary)]">
+                    {followUpCount}
+                  </span>
+                )}
+                {collapsed && item.href === "/retornos" && followUpCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                )}
               </Link>
             );
           })}

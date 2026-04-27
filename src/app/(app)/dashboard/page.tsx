@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { and, eq, gte, sql, desc, SQL } from "drizzle-orm";
+import { and, eq, gte, lte, sql, desc, asc, SQL } from "drizzle-orm";
 import {
   Avatar,
   Badge,
@@ -30,6 +30,8 @@ import {
   Target,
   AlertTriangle,
   BarChart3,
+  CalendarClock,
+  Phone,
 } from "lucide-react";
 import { requireScope } from "@/lib/auth";
 import { DashboardShell, CommissionProgress, QuickActions, TopCustomers } from "./client";
@@ -88,6 +90,7 @@ export default async function DashboardPage() {
     expiringProposals,
     [avgTicket],
     recentSales,
+    todayFollowUps,
   ] = await Promise.all([
     // 1. Vendas do mes
     db.select({
@@ -168,6 +171,23 @@ export default async function DashboardPage() {
       .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
       .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
       .where(scopeSales(undefined)).orderBy(desc(schema.sales.createdAt)).limit(6),
+    // 12. Retornos do dia (pendentes + atrasados)
+    db.select({
+      id: schema.followUps.id,
+      customerName: schema.customers.name,
+      customerPhone: schema.customers.phone,
+      scheduledDate: schema.followUps.scheduledDate,
+      type: schema.followUps.type,
+      notes: schema.followUps.notes,
+    }).from(schema.followUps)
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
+      .where(and(
+        eq(schema.followUps.status, "pending"),
+        lte(schema.followUps.scheduledDate, new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 23, 59, 59, 999)),
+        ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
+      ))
+      .orderBy(asc(schema.followUps.scheduledDate))
+      .limit(5),
   ]);
 
   const delta = salesLastMonth && salesLastMonth.total > 0
@@ -266,6 +286,48 @@ export default async function DashboardPage() {
                   {p.customerName ?? "—"}
                 </Link>
                 <span className="text-amber-400 tabular-nums">{dateShort(p.validUntil)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Retornos do dia */}
+      {todayFollowUps.length > 0 && (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-[var(--color-primary)]" />
+              <h3 className="text-sm font-semibold text-[var(--color-primary)]">
+                Retornos de hoje
+              </h3>
+              <Badge tone="brand" className="text-[10px] px-1.5 py-0">
+                {todayFollowUps.length}
+              </Badge>
+            </div>
+            <Link
+              href="/retornos"
+              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)]"
+            >
+              Ver todos →
+            </Link>
+          </div>
+          <ul className="space-y-1.5">
+            {todayFollowUps.map((fu) => (
+              <li key={fu.id} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-medium text-[var(--color-text)] truncate">
+                    {fu.customerName ?? "—"}
+                  </span>
+                  {fu.customerPhone && (
+                    <span className="hidden sm:inline-flex items-center gap-1 text-[var(--color-text-dim)]">
+                      <Phone className="h-3 w-3" />{fu.customerPhone}
+                    </span>
+                  )}
+                </div>
+                <span className="shrink-0 text-[var(--color-text-muted)]">
+                  {fu.notes ? fu.notes.slice(0, 30) + (fu.notes.length > 30 ? "..." : "") : "—"}
+                </span>
               </li>
             ))}
           </ul>

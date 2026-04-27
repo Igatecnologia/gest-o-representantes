@@ -29,6 +29,7 @@ import {
   Copy,
 } from "lucide-react";
 import { PdfButton } from "./pdf-button";
+import { MarkAsSentWithFollowUp } from "./schedule-followup";
 
 export const dynamic = "force-dynamic";
 
@@ -239,14 +240,10 @@ export default async function ProposalDetailPage({
             {/* Ações de status */}
             <div className="mt-4 space-y-2">
               {isDraft && (
-                <form action={updateProposalStatusAction}>
-                  <input type="hidden" name="id" value={proposal.id} />
-                  <input type="hidden" name="status" value="sent" />
-                  <Button size="sm" className="w-full">
-                    <Send className="h-3.5 w-3.5" />
-                    Marcar como enviada
-                  </Button>
-                </form>
+                <MarkAsSentWithFollowUp
+                  proposalId={proposal.id}
+                  customerId={proposal.customerId}
+                />
               )}
               {isSent && (
                 <div className="flex gap-2">
