@@ -25,31 +25,35 @@ export function MarkAsSentWithFollowUp({
     setLoading(true);
     setError("");
 
-    // 1. Criar retorno PRIMEIRO (se tiver data)
-    if (scheduledDate) {
-      const result = await createFollowUpAction({
-        customerId,
-        proposalId,
-        scheduledDate,
-        type: "proposal_sent",
-        notes: notes || "Retorno após envio de proposta",
-      });
-      if (result?.error) {
-        setError(result.error);
-        setLoading(false);
-        return;
+    try {
+      // 1. Criar retorno PRIMEIRO (se tiver data)
+      if (scheduledDate) {
+        const result = await createFollowUpAction({
+          customerId,
+          proposalId,
+          scheduledDate,
+          type: "proposal_sent",
+          notes: notes || "Retorno após envio de proposta",
+        });
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
       }
+
+      // 2. Marcar proposta como enviada
+      const formData = new FormData();
+      formData.set("id", proposalId);
+      formData.set("status", "sent");
+      await updateProposalStatusAction(formData);
+
+      // revalidatePath no server action já atualiza a página automaticamente
+      router.refresh();
+    } catch {
+      setError("Erro ao enviar proposta. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
-
-    // 2. Marcar proposta como enviada
-    const formData = new FormData();
-    formData.set("id", proposalId);
-    formData.set("status", "sent");
-    await updateProposalStatusAction(formData);
-
-    // 3. Forçar refresh da página
-    router.refresh();
-    setLoading(false);
   }
 
   if (!showSchedule) {

@@ -219,7 +219,8 @@ export async function getFollowUps(filter: FollowUpFilter = "today") {
       .limit(50);
 
     return results;
-  } catch {
+  } catch (err) {
+    console.error("[getFollowUps]", err);
     return [];
   }
 }
@@ -253,7 +254,8 @@ export async function getFollowUpCounts() {
       .where(scopeCondition);
 
     return counts ?? { today: 0, week: 0, month: 0, overdue: 0 };
-  } catch {
+  } catch (err) {
+    console.error("[getFollowUpCounts]", err);
     return { today: 0, week: 0, month: 0, overdue: 0 };
   }
 }
@@ -279,7 +281,8 @@ export async function getTodayFollowUpCount() {
       .where(and(...conditions));
 
     return result?.count ?? 0;
-  } catch {
+  } catch (err) {
+    console.error("[getTodayFollowUpCount]", err);
     return 0;
   }
 }

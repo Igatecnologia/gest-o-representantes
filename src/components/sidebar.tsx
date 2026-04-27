@@ -18,6 +18,7 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logoutAction } from "@/lib/actions/auth";
 
 type NavItem = {
   href: string;
@@ -116,11 +117,24 @@ export function Sidebar({
 
         {/* Footer */}
         <div className="border-t border-[var(--color-border)] px-5 py-3">
-          <div className="text-[12px] font-semibold text-[var(--color-text)] truncate">
-            {userName}
-          </div>
-          <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-            {isAdmin ? "Administrador" : "Representante"}
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-semibold text-[var(--color-text)] truncate">
+                {userName}
+              </div>
+              <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+                {isAdmin ? "Administrador" : "Representante"}
+              </div>
+            </div>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                title="Sair do sistema"
+                className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-danger)]/10 hover:text-[var(--color-danger)]"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </form>
           </div>
         </div>
       </aside>

@@ -15,12 +15,17 @@ export default async function NovoRetornoPage({
   const { isAdmin, repId } = await requireScope();
   const params = await searchParams;
 
-  // Buscar clientes do rep
-  const customers = await db
-    .select({ id: schema.customers.id, name: schema.customers.name })
-    .from(schema.customers)
-    .where(isAdmin ? undefined : eq(schema.customers.representativeId, repId))
-    .orderBy(schema.customers.name);
+  // Buscar clientes do rep (sem .where(undefined) — Turso pode não aceitar)
+  const customers = isAdmin
+    ? await db
+        .select({ id: schema.customers.id, name: schema.customers.name })
+        .from(schema.customers)
+        .orderBy(schema.customers.name)
+    : await db
+        .select({ id: schema.customers.id, name: schema.customers.name })
+        .from(schema.customers)
+        .where(eq(schema.customers.representativeId, repId!))
+        .orderBy(schema.customers.name);
 
   return (
     <>

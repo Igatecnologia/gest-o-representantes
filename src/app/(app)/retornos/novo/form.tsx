@@ -31,21 +31,27 @@ export function NewFollowUpForm({
     setLoading(true);
     setError("");
 
-    const result = await createFollowUpAction({
-      customerId,
-      proposalId: defaultProposalId,
-      dealId: defaultDealId,
-      scheduledDate,
-      type,
-      notes,
-    });
+    try {
+      const result = await createFollowUpAction({
+        customerId,
+        proposalId: defaultProposalId,
+        dealId: defaultDealId,
+        scheduledDate,
+        type,
+        notes,
+      });
 
-    if (result?.error) {
-      setError(result.error);
-      setLoading(false);
-    } else {
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
       router.push("/retornos?filter=all");
       router.refresh();
+    } catch {
+      setError("Erro ao criar retorno. Tente novamente.");
+    } finally {
+      setLoading(false);
     }
   }
 
