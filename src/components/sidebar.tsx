@@ -42,7 +42,7 @@ const NAV: NavItem[] = [
 const MOBILE_TABS: NavItem[] = [
   { href: "/clientes", label: "Clientes", icon: Building2 },
   { href: "/propostas", label: "Propostas", icon: FileText },
-  { href: "/campo", label: "Campo", icon: MapPin },
+  { href: "/retornos", label: "Retornos", icon: CalendarClock },
   { href: "/vendas", label: "Vendas", icon: Receipt },
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
 ];
