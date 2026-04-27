@@ -59,6 +59,19 @@ export async function createProposalAction(input: {
     finalRepId = firstRep.id;
   }
 
+  // Validar que o cliente pertence ao rep
+  if (!isAdmin && finalRepId) {
+    const [customer] = await db
+      .select({ id: schema.customers.id })
+      .from(schema.customers)
+      .where(and(
+        eq(schema.customers.id, d.customerId),
+        eq(schema.customers.representativeId, finalRepId)
+      ))
+      .limit(1);
+    if (!customer) return { error: "Cliente não encontrado." };
+  }
+
   const proposal = await db.transaction(async (tx) => {
     const [p] = await tx
       .insert(schema.proposals)

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { sql } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
+import { getSession, getCurrentRep, isAdmin as checkAdmin } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -16,12 +16,24 @@ export async function GET(req: Request) {
   }
 
   const pattern = `%${q}%`;
+  const admin = checkAdmin(session);
+  const rep = !admin ? await getCurrentRep(session) : null;
+  const repId = rep?.id;
+
+  // Rep só vê seus próprios clientes e propostas
+  const customerWhere = admin
+    ? sql`${schema.customers.name} LIKE ${pattern}`
+    : sql`${schema.customers.name} LIKE ${pattern} AND ${schema.customers.representativeId} = ${repId}`;
+
+  const proposalWhere = admin
+    ? sql`${schema.customers.name} LIKE ${pattern}`
+    : sql`${schema.customers.name} LIKE ${pattern} AND ${schema.proposals.representativeId} = ${repId}`;
 
   const [customers, products, proposals] = await Promise.all([
     db
       .select({ id: schema.customers.id, name: schema.customers.name })
       .from(schema.customers)
-      .where(sql`${schema.customers.name} LIKE ${pattern}`)
+      .where(customerWhere)
       .limit(5),
     db
       .select({ id: schema.products.id, name: schema.products.name })
@@ -35,7 +47,7 @@ export async function GET(req: Request) {
       })
       .from(schema.proposals)
       .leftJoin(schema.customers, sql`${schema.customers.id} = ${schema.proposals.customerId}`)
-      .where(sql`${schema.customers.name} LIKE ${pattern}`)
+      .where(proposalWhere)
       .limit(5),
   ]);
 

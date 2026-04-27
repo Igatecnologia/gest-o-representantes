@@ -39,6 +39,19 @@ export async function createSaleAction(_prev: unknown, formData: FormData) {
   const { representativeId, customerId, productId, quantity, unitPrice, discount, notes } =
     parsed.data;
 
+  // Validar que o cliente pertence ao rep
+  if (!isAdmin) {
+    const [customer] = await db
+      .select({ id: schema.customers.id })
+      .from(schema.customers)
+      .where(and(
+        eq(schema.customers.id, customerId),
+        eq(schema.customers.representativeId, repId)
+      ))
+      .limit(1);
+    if (!customer) return { error: "Cliente não encontrado." };
+  }
+
   const unitPriceCents = toCents(unitPrice);
   const discountCents = toCents(discount);
   const totalCents = Math.max(0, quantity * unitPriceCents - discountCents);

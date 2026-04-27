@@ -47,6 +47,19 @@ export async function createDealAction(_prev: unknown, formData: FormData) {
 
   const d = parsed.data;
 
+  // Validar que o cliente pertence ao rep
+  if (!isAdmin) {
+    const [customer] = await db
+      .select({ id: schema.customers.id })
+      .from(schema.customers)
+      .where(and(
+        eq(schema.customers.id, d.customerId),
+        eq(schema.customers.representativeId, repId)
+      ))
+      .limit(1);
+    if (!customer) return { error: "Cliente não encontrado." };
+  }
+
   await db.insert(schema.deals).values({
     title: d.title,
     customerId: d.customerId,

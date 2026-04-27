@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { redirect } from "next/navigation";
 import { db, schema } from "./db";
@@ -95,9 +95,31 @@ export async function getCurrentRep(session: SessionPayload) {
 /**
  * Retorna `{ isAdmin, repId }`. Admin pode não ter `repId`.
  * Rep sempre tem `repId` — se não tiver, bloqueia acesso (estado inválido).
+ * Verifica se o usuário ainda está ativo no banco (proteção contra tokens de contas desativadas).
  */
 export async function requireScope() {
   const session = await requireUser();
+
+  // Verificar se usuário ainda está ativo e role não mudou
+  const [user] = await db
+    .select({ active: schema.users.active, role: schema.users.role })
+    .from(schema.users)
+    .where(eq(schema.users.id, session.sub))
+    .limit(1);
+
+  if (!user || !user.active) {
+    const jar = await cookies();
+    jar.delete("session");
+    redirect("/login");
+  }
+
+  // Se role mudou desde a emissão do token, forçar re-login
+  if (user.role !== session.role) {
+    const jar = await cookies();
+    jar.delete("session");
+    redirect("/login");
+  }
+
   if (isAdmin(session)) {
     return { session, isAdmin: true as const, repId: null };
   }

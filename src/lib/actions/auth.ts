@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { compare, hash } from "bcrypt-ts";
 import { eq } from "drizzle-orm";
@@ -23,6 +24,18 @@ export async function loginAction(_prev: unknown, formData: FormData) {
     return { error: "Dados inválidos." };
   }
 
+  // Rate limit global por IP (protege contra credential stuffing distribuído)
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const { blocked: ipBlocked } = await checkRateLimit(
+    `login-ip:${ip}`,
+    { maxAttempts: 20, windowMs: 15 * 60_000 }
+  );
+  if (ipBlocked) {
+    return { error: "Muitas tentativas deste endereço. Aguarde alguns minutos." };
+  }
+
+  // Rate limit por email
   const { blocked, retryAfterSeconds } = await checkRateLimit(
     `login:${parsed.data.email.toLowerCase()}`
   );
