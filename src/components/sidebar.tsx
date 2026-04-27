@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
-import { Suspense, use } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -49,24 +48,14 @@ const MOBILE_TABS: NavItem[] = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
 ];
 
-function FollowUpBadge({ promise }: { promise: Promise<number> }) {
-  const count = use(promise);
-  if (count <= 0) return null;
-  return (
-    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-bold text-white">
-      {count}
-    </span>
-  );
-}
-
 export function Sidebar({
   userName,
   role,
-  followUpCountPromise,
+  followUpCount = 0,
 }: {
   userName: string;
   role: "admin" | "manager" | "rep";
-  followUpCountPromise?: Promise<number>;
+  followUpCount?: number;
 }) {
   const pathname = usePathname();
   const isAdmin = role === "admin" || role === "manager";
@@ -116,10 +105,10 @@ export function Sidebar({
                   )}
                 />
                 <span className="flex-1">{item.label}</span>
-                {item.href === "/retornos" && followUpCountPromise && (
-                  <Suspense fallback={null}>
-                    <FollowUpBadge promise={followUpCountPromise} />
-                  </Suspense>
+                {item.href === "/retornos" && followUpCount > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-bold text-white">
+                    {followUpCount}
+                  </span>
                 )}
               </Link>
             );
