@@ -102,6 +102,20 @@ export async function updateDealAction(
   }
 
   const d = parsed.data;
+
+  // Validar ownership do cliente
+  if (!isAdmin) {
+    const [customer] = await db
+      .select({ id: schema.customers.id })
+      .from(schema.customers)
+      .where(and(
+        eq(schema.customers.id, d.customerId),
+        eq(schema.customers.representativeId, repId)
+      ))
+      .limit(1);
+    if (!customer) return { error: "Cliente não encontrado." };
+  }
+
   const isClosed = d.stage === "won" || d.stage === "lost";
 
   const whereClause = isAdmin

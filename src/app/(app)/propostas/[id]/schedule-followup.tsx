@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui";
 import { CalendarClock, Send } from "lucide-react";
 import { createFollowUpAction } from "@/lib/actions/follow-ups";
@@ -13,57 +14,68 @@ export function MarkAsSentWithFollowUp({
   proposalId: string;
   customerId: string;
 }) {
+  const router = useRouter();
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSend() {
     setLoading(true);
+    setError("");
 
-    // Se agendou retorno, criar ANTES de mudar status (para evitar revalidate antes)
+    // 1. Criar retorno PRIMEIRO (se tiver data)
     if (scheduledDate) {
-      await createFollowUpAction({
+      const result = await createFollowUpAction({
         customerId,
         proposalId,
         scheduledDate,
         type: "proposal_sent",
         notes: notes || "Retorno após envio de proposta",
       });
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
     }
 
-    // Marcar proposta como enviada (revalidate paths ao final)
+    // 2. Marcar proposta como enviada
     const formData = new FormData();
     formData.set("id", proposalId);
     formData.set("status", "sent");
     await updateProposalStatusAction(formData);
 
+    // 3. Forçar refresh da página
+    router.refresh();
     setLoading(false);
   }
 
   if (!showSchedule) {
     return (
-      <div className="space-y-2">
-        <form action={updateProposalStatusAction}>
-          <input type="hidden" name="id" value={proposalId} />
-          <input type="hidden" name="status" value="sent" />
-          <Button size="sm" className="w-full" type="button" onClick={() => setShowSchedule(true)}>
-            <Send className="h-3.5 w-3.5" />
-            Marcar como enviada
-          </Button>
-        </form>
-      </div>
+      <Button size="sm" className="w-full" type="button" onClick={() => setShowSchedule(true)}>
+        <Send className="h-3.5 w-3.5" />
+        Marcar como enviada
+      </Button>
     );
   }
 
   return (
-    <div className="space-y-3 rounded-[var(--radius)] border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3">
+    <div className="space-y-3 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
       <p className="text-xs font-medium text-[var(--color-text)]">
         Agendar retorno com o cliente?
       </p>
+
+      {error && (
+        <div className="rounded border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2 text-xs text-[var(--color-danger)]">
+          {error}
+        </div>
+      )}
+
       <div>
-        <label className="mb-1 block text-[10px] text-[var(--color-text-muted)]">
-          Data do retorno (opcional)
+        <label className="mb-1 block text-[11px] text-[var(--color-text-muted)]">
+          Data do retorno
         </label>
         <Input
           type="date"
@@ -73,7 +85,7 @@ export function MarkAsSentWithFollowUp({
       </div>
       {scheduledDate && (
         <div>
-          <label className="mb-1 block text-[10px] text-[var(--color-text-muted)]">
+          <label className="mb-1 block text-[11px] text-[var(--color-text-muted)]">
             Observação
           </label>
           <Input

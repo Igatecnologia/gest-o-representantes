@@ -134,6 +134,19 @@ export async function updateProposalAction(input: {
   if (!isAdmin && existing.representativeId !== repId) return { error: "Sem permissao." };
   if (existing.status !== "draft") return { error: "Apenas propostas em rascunho podem ser editadas." };
 
+  // Validar ownership do cliente
+  if (!isAdmin && repId) {
+    const [customer] = await db
+      .select({ id: schema.customers.id })
+      .from(schema.customers)
+      .where(and(
+        eq(schema.customers.id, d.customerId),
+        eq(schema.customers.representativeId, repId)
+      ))
+      .limit(1);
+    if (!customer) return { error: "Cliente não encontrado." };
+  }
+
   await db.transaction(async (tx) => {
     await tx
       .update(schema.proposals)
