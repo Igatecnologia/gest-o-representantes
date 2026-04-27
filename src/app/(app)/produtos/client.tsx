@@ -25,6 +25,7 @@ type ProductRow = {
   name: string;
   sku: string | null;
   price: number;
+  implementationPrice: number;
   type: string;
   active: boolean;
 };
@@ -98,9 +99,9 @@ export function ProductList({ products }: { products: ProductRow[] }) {
               <TH>Produto</TH>
               <TH>SKU</TH>
               <TH>Tipo</TH>
-              <TH className="text-right">Preco</TH>
+              <TH className="text-right">Implantação</TH>
               <TH>Status</TH>
-              <TH className="text-right">Acoes</TH>
+              <TH className="text-right">Ações</TH>
             </tr>
           </THead>
           <tbody>
@@ -111,7 +112,7 @@ export function ProductList({ products }: { products: ProductRow[] }) {
                 <TD>
                   <Badge tone={TYPE_TONE[p.type]}>{TYPE_LABEL[p.type] ?? p.type}</Badge>
                 </TD>
-                <TD className="text-right font-semibold tabular-nums">{brl(p.price)}</TD>
+                <TD className="text-right font-semibold tabular-nums">{brl(p.implementationPrice)}</TD>
                 <TD>
                   {p.active ? <Badge tone="success">Ativo</Badge> : <Badge tone="danger">Inativo</Badge>}
                 </TD>

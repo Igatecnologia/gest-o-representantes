@@ -112,19 +112,19 @@ export function NewFollowUpForm({
         <div>
           <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-[var(--color-text)]">
             <MessageSquareText className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-            Motivo do retorno *
+            Por que vou retornar? *
           </label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={TYPE_HINTS[type] ?? "Por que precisa retornar com esse cliente?"}
+            placeholder={TYPE_HINTS[type] ?? "Conte aqui o contexto da última conversa..."}
             rows={4}
             required
             minLength={3}
             maxLength={500}
           />
           <p className="mt-1.5 text-[10px] text-[var(--color-text-dim)]">
-            Esse texto vai aparecer no card e te lembrar do contexto na hora do retorno.
+            Esse texto aparece no card e te lembra do contexto na hora de ligar.
           </p>
         </div>
 

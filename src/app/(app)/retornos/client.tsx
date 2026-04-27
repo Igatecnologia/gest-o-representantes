@@ -24,7 +24,7 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import { dateShort, dateLong } from "@/lib/utils";
+import { dateShort, dateLong, whatsappUrl } from "@/lib/utils";
 import {
   completeFollowUpAction,
   skipFollowUpAction,
@@ -422,12 +422,12 @@ export function FollowUpList({
                     )}
                   </div>
 
-                  {/* Motivo — destaque visual */}
+                  {/* Por que vou retornar — destaque visual */}
                   {fu.notes && (
                     <div className="mt-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-primary)]/40 bg-[var(--color-surface-2)]/50 px-3 py-2">
                       <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-primary)]">
                         <Sparkles className="h-2.5 w-2.5" />
-                        Motivo
+                        Por que vou retornar
                       </div>
                       <p className="text-xs leading-relaxed text-[var(--color-text)]">
                         {fu.notes}
@@ -435,12 +435,12 @@ export function FollowUpList({
                     </div>
                   )}
 
-                  {/* Resultado (se já foi feito) */}
+                  {/* O que aconteceu (se já foi feito) */}
                   {!isPending && fu.result && (
                     <div className="mt-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-success)]/40 bg-[var(--color-success)]/5 px-3 py-2">
                       <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-success)]">
                         <CheckCircle2 className="h-2.5 w-2.5" />
-                        Resultado
+                        O que aconteceu
                       </div>
                       <p className="text-xs leading-relaxed text-[var(--color-text)]">
                         {fu.result}
@@ -534,12 +534,12 @@ export function FollowUpList({
                     >
                       <input type="hidden" name="id" value={fu.id} />
                       <div>
-                        <label className="text-[10px] font-medium text-[var(--color-text-muted)] mb-1 block">
-                          O que aconteceu?
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)] mb-1 block">
+                          O que aconteceu na conversa?
                         </label>
                         <Input
                           name="result"
-                          placeholder="Ex: Cliente fechou! Vou enviar contrato."
+                          placeholder="Ex: Cliente fechou! Vou enviar o contrato."
                           value={resultText}
                           onChange={(e) => setResultText(e.target.value)}
                         />

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq, or, like, sql } from "drizzle-orm";
-import { Building2, Plus } from "lucide-react";
+import { desc, eq, or, like, sql, and, gte, isNull } from "drizzle-orm";
+import { Building2, Plus, Users, MapPin, UserX } from "lucide-react";
 import { Button, PageHeader } from "@/components/ui";
+import { PageStats, type PageStat } from "@/components/page-stats";
 import { requireScope } from "@/lib/auth";
 import { CustomerList } from "./client";
 
@@ -37,7 +38,12 @@ export default async function CustomersPage({
       ? sql`${scopeWhere} AND ${searchWhere}`
       : scopeWhere ?? searchWhere;
 
-  const [[{ total }], customers] = await Promise.all([
+  // Stats — calculadas em paralelo com a lista
+  const firstOfMonth = new Date();
+  firstOfMonth.setDate(1);
+  firstOfMonth.setHours(0, 0, 0, 0);
+
+  const [[{ total }], customers, [statsAgg]] = await Promise.all([
     db
       .select({ total: sql<number>`count(*)` })
       .from(schema.customers)
@@ -63,7 +69,41 @@ export default async function CustomersPage({
       .orderBy(desc(schema.customers.createdAt))
       .limit(PER_PAGE)
       .offset((page - 1) * PER_PAGE),
+    db
+      .select({
+        thisMonth: sql<number>`count(case when ${schema.customers.createdAt} >= ${firstOfMonth.getTime()} then 1 end)`,
+        unassigned: sql<number>`count(case when ${schema.customers.representativeId} is null then 1 end)`,
+      })
+      .from(schema.customers)
+      .where(scopeWhere),
   ]);
+
+  const stats: PageStat[] = [
+    {
+      label: "Total",
+      value: total,
+      hint: isAdmin ? "clientes na base" : "seus clientes",
+      tone: "primary",
+      icon: Users,
+    },
+    {
+      label: "Novos no mês",
+      value: statsAgg?.thisMonth ?? 0,
+      hint: "cadastrados em " +
+        firstOfMonth.toLocaleDateString("pt-BR", { month: "long" }),
+      tone: "emerald",
+      icon: Building2,
+    },
+  ];
+  if (isAdmin) {
+    stats.push({
+      label: "Sem dono",
+      value: statsAgg?.unassigned ?? 0,
+      hint: "aguardando representante",
+      tone: "amber",
+      icon: UserX,
+    });
+  }
 
   return (
     <>
@@ -80,6 +120,7 @@ export default async function CustomersPage({
           </Link>
         }
       />
+      <PageStats stats={stats} />
       <CustomerList
         customers={customers}
         isAdmin={isAdmin}

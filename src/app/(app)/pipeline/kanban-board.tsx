@@ -13,14 +13,22 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { brl, cn, dateShort } from "@/lib/utils";
-import { Avatar, Badge } from "@/components/ui";
+import { Avatar, Badge, SearchInput, Select } from "@/components/ui";
 import { moveDealAction } from "@/lib/actions/deals";
 import type { DealStage } from "@/lib/db/schema";
-import { Calendar, Trophy, XCircle, ExternalLink, FileText, Pencil } from "lucide-react";
+import {
+  Calendar,
+  Trophy,
+  XCircle,
+  ExternalLink,
+  FileText,
+  Pencil,
+  AlertTriangle,
+} from "lucide-react";
 
 type DealRow = {
   id: string;
@@ -35,6 +43,7 @@ type DealRow = {
   repId: string;
   repName: string | null;
   productId: string | null;
+  isStale: boolean;
 };
 
 type Column = {
@@ -53,14 +62,51 @@ const stageTone: Record<string, string> = {
   lost: "border-red-500/30 bg-red-500/5",
 };
 
-export function KanbanBoard({ columns }: { columns: Column[] }) {
+export function KanbanBoard({
+  columns,
+  search,
+  repFilter,
+  reps,
+  isAdmin,
+}: {
+  columns: Column[];
+  search: string;
+  repFilter: string;
+  reps: { id: string; name: string }[];
+  isAdmin: boolean;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const [cols, setCols] = React.useState(columns);
   const [activeDeal, setActiveDeal] = React.useState<DealRow | null>(null);
+  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     setCols(columns);
   }, [columns]);
+
+  function navigate(updates: Partial<{ q: string; rep: string }>) {
+    const next = {
+      q: updates.q ?? search,
+      rep: updates.rep !== undefined ? updates.rep : repFilter,
+    };
+    const params = new URLSearchParams();
+    if (next.q) params.set("q", next.q);
+    if (next.rep) params.set("rep", next.rep);
+    const qs = params.toString();
+    router.push(`${pathname}${qs ? `?${qs}` : ""}`);
+  }
+
+  function handleSearch(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => navigate({ q: value }), 300);
+  }
+
+  // Contagem de deals parados (visíveis no resultado filtrado)
+  const staleCount = cols.reduce(
+    (acc, c) => acc + c.deals.filter((d) => d.isStale).length,
+    0,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
@@ -118,21 +164,53 @@ export function KanbanBoard({ columns }: { columns: Column[] }) {
   };
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {cols.map((col) => (
-          <KanbanColumn key={col.id} column={col} />
-        ))}
+    <>
+      {/* Filtros */}
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+        <SearchInput
+          defaultValue={search}
+          onChange={handleSearch}
+          placeholder="Buscar por título do negócio ou cliente..."
+          className="flex-1"
+        />
+        {isAdmin && reps.length > 0 && (
+          <Select
+            value={repFilter}
+            onChange={(e) => navigate({ rep: e.target.value })}
+            className="md:w-[220px]"
+          >
+            <option value="">Todos os representantes</option>
+            {reps.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+        )}
+        {staleCount > 0 && (
+          <div className="inline-flex items-center gap-2 rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs font-medium text-amber-600">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            {staleCount} negócio(s) parado(s) há 30+ dias
+          </div>
+        )}
       </div>
 
-      <DragOverlay>
-        {activeDeal ? <KanbanCard deal={activeDeal} dragging /> : null}
-      </DragOverlay>
-    </DndContext>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {cols.map((col) => (
+            <KanbanColumn key={col.id} column={col} />
+          ))}
+        </div>
+
+        <DragOverlay>
+          {activeDeal ? <KanbanCard deal={activeDeal} dragging /> : null}
+        </DragOverlay>
+      </DndContext>
+    </>
   );
 }
 
@@ -190,11 +268,21 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
       {...listeners}
       {...attributes}
       className={cn(
-        "group cursor-grab active:cursor-grabbing rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 shadow-sm transition-all",
+        "group relative cursor-grab active:cursor-grabbing rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 shadow-sm transition-all",
         "hover:border-[var(--color-border-strong)] hover:shadow-md",
-        (isDragging || dragging) && "opacity-60 shadow-lg ring-1 ring-[var(--color-primary)]/40"
+        deal.isStale && "border-amber-500/40",
+        (isDragging || dragging) && "opacity-60 shadow-lg ring-1 ring-[var(--color-primary)]/40",
       )}
+      title={deal.isStale ? "Negócio parado há mais de 30 dias" : undefined}
     >
+      {deal.isStale && (
+        <div
+          className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 shadow-sm"
+          aria-label="Negócio parado"
+        >
+          <AlertTriangle className="h-2.5 w-2.5 text-white" />
+        </div>
+      )}
       <div className="mb-2 flex items-start justify-between gap-2">
         <h4 className="flex-1 text-sm font-medium leading-snug">{deal.title}</h4>
         <span className="shrink-0 text-xs font-semibold tabular-nums text-[var(--color-primary)]">

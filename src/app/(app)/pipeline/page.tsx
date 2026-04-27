@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and, or, like, sql } from "drizzle-orm";
 import { DEAL_STAGES } from "@/lib/db/schema";
 import { Button, PageHeader } from "@/components/ui";
 import { KanbanBoard } from "./kanban-board";
@@ -9,38 +9,81 @@ import { requireScope } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function PipelinePage() {
+export default async function PipelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; rep?: string }>;
+}) {
   const { isAdmin, repId } = await requireScope();
+  const params = await searchParams;
+  const search = (params.q ?? "").trim();
+  const repFilter = isAdmin ? (params.rep ?? "") : "";
 
-  const where = isAdmin ? undefined : eq(schema.deals.representativeId, repId);
+  const scopeWhere = isAdmin ? undefined : eq(schema.deals.representativeId, repId);
+  const repWhere = repFilter ? eq(schema.deals.representativeId, repFilter) : undefined;
+  const searchWhere = search
+    ? or(
+        like(schema.deals.title, `%${search}%`),
+        like(schema.customers.name, `%${search}%`),
+      )
+    : undefined;
 
-  const rows = await db
-    .select({
-      id: schema.deals.id,
-      title: schema.deals.title,
-      value: schema.deals.value,
-      stage: schema.deals.stage,
-      probability: schema.deals.probability,
-      expectedCloseDate: schema.deals.expectedCloseDate,
-      createdAt: schema.deals.createdAt,
-      customerId: schema.deals.customerId,
-      customerName: schema.customers.name,
-      repId: schema.deals.representativeId,
-      repName: schema.representatives.name,
-      productId: schema.deals.productId,
-    })
-    .from(schema.deals)
-    .leftJoin(schema.customers, eq(schema.customers.id, schema.deals.customerId))
-    .leftJoin(
-      schema.representatives,
-      eq(schema.representatives.id, schema.deals.representativeId)
-    )
-    .where(where)
-    .orderBy(desc(schema.deals.createdAt));
+  const conditions = [scopeWhere, repWhere, searchWhere].filter(Boolean);
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, repsList] = await Promise.all([
+    db
+      .select({
+        id: schema.deals.id,
+        title: schema.deals.title,
+        value: schema.deals.value,
+        stage: schema.deals.stage,
+        probability: schema.deals.probability,
+        expectedCloseDate: schema.deals.expectedCloseDate,
+        createdAt: schema.deals.createdAt,
+        customerId: schema.deals.customerId,
+        customerName: schema.customers.name,
+        repId: schema.deals.representativeId,
+        repName: schema.representatives.name,
+        productId: schema.deals.productId,
+      })
+      .from(schema.deals)
+      .leftJoin(schema.customers, eq(schema.customers.id, schema.deals.customerId))
+      .leftJoin(
+        schema.representatives,
+        eq(schema.representatives.id, schema.deals.representativeId),
+      )
+      .where(whereClause)
+      .orderBy(desc(schema.deals.createdAt)),
+    // Lista de reps pra filtro (apenas admin)
+    isAdmin
+      ? db
+          .select({
+            id: schema.representatives.id,
+            name: schema.representatives.name,
+          })
+          .from(schema.representatives)
+          .where(eq(schema.representatives.active, true))
+          .orderBy(schema.representatives.name)
+      : Promise.resolve([] as { id: string; name: string }[]),
+  ]);
+
+  // Marca deals "parados" — sem movimentação há 30+ dias na mesma stage.
+  // Aproximação: usa createdAt do deal (não temos histórico de stage moves).
+  // Para deals em won/lost, não marca (já fechados).
+  const STALE_DAYS = 30;
+  const staleThreshold = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
+  const enriched = rows.map((d) => ({
+    ...d,
+    isStale:
+      d.stage !== "won" &&
+      d.stage !== "lost" &&
+      new Date(d.createdAt).getTime() < staleThreshold,
+  }));
 
   const byStage = DEAL_STAGES.map((s) => ({
     ...s,
-    deals: rows.filter((d) => d.stage === s.id),
+    deals: enriched.filter((d) => d.stage === s.id),
   }));
 
   return (
@@ -59,7 +102,13 @@ export default async function PipelinePage() {
         }
       />
 
-      <KanbanBoard columns={byStage} />
+      <KanbanBoard
+        columns={byStage}
+        search={search}
+        repFilter={repFilter}
+        reps={repsList}
+        isAdmin={isAdmin}
+      />
     </>
   );
 }

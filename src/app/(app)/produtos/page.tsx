@@ -19,12 +19,13 @@ const getProductsCached = unstable_cache(
         name: schema.products.name,
         sku: schema.products.sku,
         price: schema.products.price,
+        implementationPrice: schema.products.implementationPrice,
         type: schema.products.type,
         active: schema.products.active,
       })
       .from(schema.products)
       .orderBy(desc(schema.products.createdAt)),
-  ["products-list"],
+  ["products-list-v2"],
   { revalidate: 300, tags: ["products"] },
 );
 

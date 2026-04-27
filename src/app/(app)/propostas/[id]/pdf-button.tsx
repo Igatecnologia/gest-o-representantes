@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui";
+import { whatsappUrl } from "@/lib/utils";
 import { Download, Loader2, MessageCircle } from "lucide-react";
 
 interface ProposalShareProps {
@@ -176,15 +177,7 @@ export function PdfButton({ proposal, items, totals }: ProposalShareProps) {
       a.click();
       URL.revokeObjectURL(url);
 
-      // Abre WhatsApp com mensagem de texto
-      const phone = proposal.customerPhone?.replace(/\D/g, "") ?? "";
-      const fullPhone = phone.length >= 10 ? `55${phone.replace(/^55/, "")}` : "";
-      const encoded = encodeURIComponent(message);
-      const waUrl = fullPhone
-        ? `https://wa.me/${fullPhone}?text=${encoded}`
-        : `https://wa.me/?text=${encoded}`;
-
-      window.open(waUrl, "_blank", "noopener,noreferrer");
+      window.open(whatsappUrl(proposal.customerPhone, message), "_blank", "noopener,noreferrer");
       toast.success("PDF baixado — anexe no WhatsApp");
     } catch (err) {
       // Cancelamento do share nao e erro

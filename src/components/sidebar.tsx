@@ -16,6 +16,7 @@ import {
   MapPin,
   LogOut,
   CalendarClock,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/lib/actions/auth";
@@ -37,14 +38,17 @@ const NAV: NavItem[] = [
   { href: "/vendas", label: "VENDAS", icon: Receipt },
   { href: "/comissoes", label: "COMISSÕES", icon: Wallet },
   { href: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
+  { href: "/campo", label: "CAMPO", icon: MapPin },
   { href: "/configuracoes", label: "CONFIGURAÇÕES", icon: Settings },
 ];
 
-const MOBILE_TABS: NavItem[] = [
+// Tab bar mobile: 4 tabs regulares + botão CTA central /campo (raised, gradiente)
+const MOBILE_TABS_LEFT: NavItem[] = [
   { href: "/clientes", label: "Clientes", icon: Building2 },
-  { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/retornos", label: "Retornos", icon: CalendarClock },
-  { href: "/vendas", label: "Vendas", icon: Receipt },
+];
+const MOBILE_TABS_RIGHT: NavItem[] = [
+  { href: "/propostas", label: "Propostas", icon: FileText },
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
 ];
 
@@ -139,20 +143,58 @@ export function Sidebar({
         </div>
       </aside>
 
-      {/* Mobile tab bar */}
-      <nav aria-label="Navegação mobile" className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] md:hidden pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-stretch justify-around">
-          {MOBILE_TABS.map((item) => {
+      {/* Mobile tab bar — 2 tabs | CTA central (Campo) | 2 tabs */}
+      <nav
+        aria-label="Navegação mobile"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] md:hidden pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="relative flex items-stretch">
+          {MOBILE_TABS_LEFT.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium",
                   active
                     ? "text-[var(--color-primary)] border-t-2 border-[var(--color-primary)]"
-                    : "text-[var(--color-text-dim)] border-t-2 border-transparent"
+                    : "text-[var(--color-text-dim)] border-t-2 border-transparent",
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          {/* CTA central — botão grande chamativo "Novo lead / Campo" */}
+          <div className="flex flex-1 items-start justify-center">
+            <Link
+              href="/campo"
+              aria-label="Captar novo lead em campo"
+              className="group relative -mt-7 flex h-16 w-16 flex-col items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] text-white shadow-[0_8px_24px_-4px_rgba(46,109,180,0.5)] transition-all active:scale-95"
+            >
+              {/* Glow ring animado quando NÃO está em /campo */}
+              {!(pathname === "/campo" || pathname.startsWith("/campo/")) && (
+                <span className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-[var(--color-primary)]/30 blur-xl group-hover:bg-[var(--color-primary)]/40" />
+              )}
+              <Plus className="h-6 w-6" strokeWidth={2.5} />
+              <span className="text-[9px] font-bold leading-tight">CAMPO</span>
+            </Link>
+          </div>
+
+          {MOBILE_TABS_RIGHT.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[10px] font-medium",
+                  active
+                    ? "text-[var(--color-primary)] border-t-2 border-[var(--color-primary)]"
+                    : "text-[var(--color-text-dim)] border-t-2 border-transparent",
                 )}
               >
                 <item.icon className="h-5 w-5" />
