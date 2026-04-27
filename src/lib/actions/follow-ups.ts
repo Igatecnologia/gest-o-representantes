@@ -86,9 +86,7 @@ export async function createFollowUpAction(input: {
       err,
       input: { ...d, customerId: d.customerId.slice(0, 8) + "…" },
     });
-    // TEMP debug: expor mensagem real do erro para diagnosticar prod sem acesso aos logs
-    const detail = err instanceof Error ? err.message : String(err);
-    return { error: `Erro ao salvar retorno: ${detail}` };
+    return { error: "Erro ao salvar retorno. Tente novamente." };
   }
 }
 
