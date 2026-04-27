@@ -13,7 +13,7 @@ export default async function AppLayout({
   // Graceful: se tabela follow_ups não existir ainda, retorna 0
   const followUpCount = await getTodayFollowUpCount().catch(() => 0);
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)] bg-mesh-live">
+    <div className="flex min-h-screen bg-[var(--color-bg)]">
       <Sidebar userName={user.name} role={user.role} followUpCount={followUpCount} />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
         <Topbar />

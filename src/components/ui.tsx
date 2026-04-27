@@ -129,7 +129,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 card-glow card-shine",
+        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5",
         className
       )}
       {...props}
@@ -154,7 +154,7 @@ export function PageHeader({
     <div className="mb-8 flex items-end justify-between gap-4">
       <div className="flex items-start gap-3">
         {Icon && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius)] bg-gradient-brand-subtle border border-[var(--color-border)] shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-primary)]/10">
             <Icon className="h-5 w-5 text-[var(--color-primary)]" />
           </div>
         )}
@@ -208,7 +208,7 @@ export function Badge({
 
 export function Table({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] card-glow">
+    <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)]">
       <table className="w-full min-w-[600px] text-sm">{children}</table>
     </div>
   );

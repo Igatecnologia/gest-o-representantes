@@ -17,15 +17,15 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/70 backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between px-6">
+    <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="flex h-12 items-center justify-between px-6">
         <button
           onClick={openPalette}
           aria-label="Abrir paleta de comandos (Ctrl+K)"
-          className="group flex w-full max-w-md items-center gap-2.5 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-strong)] hover:text-[var(--color-text)]"
+          className="group flex w-full max-w-sm items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-text-dim)] transition-colors hover:border-[var(--color-border-strong)]"
         >
-          <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">Buscar ou executar comando...</span>
+          <Search className="h-3.5 w-3.5" />
+          <span className="flex-1 text-left text-[13px]">Busca rápida</span>
           <div className="flex items-center gap-1">
             <Kbd>⌘</Kbd>
             <Kbd>K</Kbd>
@@ -33,13 +33,6 @@ export function Topbar() {
         </button>
 
         <div className="ml-4 flex items-center gap-3">
-          <span className="hidden text-xs text-[var(--color-text-muted)] md:inline">
-            {new Intl.DateTimeFormat("pt-BR", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-            }).format(new Date())}
-          </span>
           <ThemeToggle />
         </div>
       </div>
