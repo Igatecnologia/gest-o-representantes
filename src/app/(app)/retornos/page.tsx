@@ -1,22 +1,32 @@
 import Link from "next/link";
 import { getFollowUps, getFollowUpCounts } from "@/lib/actions/follow-ups";
-import { requireScope } from "@/lib/auth";
 import { Button, PageHeader } from "@/components/ui";
 import { CalendarClock, Plus } from "lucide-react";
 import { FollowUpList } from "./client";
 
 export const dynamic = "force-dynamic";
 
+type Filter = "today" | "week" | "month" | "overdue" | "all";
+type StatusFilter = "pending" | "done" | "skipped" | "all";
+
 export default async function RetornosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{
+    filter?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
-  const { filter } = await searchParams;
-  const activeFilter = (filter as "today" | "week" | "month" | "overdue" | "all") || "all";
+  const params = await searchParams;
+  const activeFilter = (params.filter as Filter) || "all";
+  const status = (params.status as StatusFilter) || "pending";
+  const from = params.from || "";
+  const to = params.to || "";
 
   const [followUps, counts] = await Promise.all([
-    getFollowUps(activeFilter),
+    getFollowUps(activeFilter, { status, from, to }),
     getFollowUpCounts(),
   ]);
 
@@ -39,6 +49,9 @@ export default async function RetornosPage({
         followUps={followUps}
         counts={counts}
         activeFilter={activeFilter}
+        status={status}
+        from={from}
+        to={to}
       />
     </>
   );

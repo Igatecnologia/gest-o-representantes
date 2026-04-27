@@ -12,7 +12,7 @@ const createSchema = z.object({
   dealId: z.string().optional(),
   scheduledDate: z.string().min(1, "Informe a data de retorno."),
   type: z.enum(["proposal_sent", "negotiation", "post_sale", "general"]),
-  notes: z.string().optional(),
+  notes: z.string().min(3, "Descreva o motivo do retorno (mínimo 3 caracteres)."),
 });
 
 export async function createFollowUpAction(input: {
@@ -174,8 +174,12 @@ export async function deleteFollowUpAction(formData: FormData) {
 }
 
 type FollowUpFilter = "today" | "week" | "month" | "overdue" | "all";
+type FollowUpStatus = "pending" | "done" | "skipped" | "all";
 
-export async function getFollowUps(filter: FollowUpFilter = "today") {
+export async function getFollowUps(
+  filter: FollowUpFilter = "today",
+  options: { status?: FollowUpStatus; from?: string; to?: string } = {},
+) {
   try {
     const { isAdmin, repId } = await requireScope();
 
@@ -190,38 +194,60 @@ export async function getFollowUps(filter: FollowUpFilter = "today") {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     let dateCondition;
-    switch (filter) {
-      case "today":
-        dateCondition = and(
-          gte(schema.followUps.scheduledDate, todayStart),
-          lte(schema.followUps.scheduledDate, todayEnd)
-        );
-        break;
-      case "week":
-        dateCondition = and(
-          gte(schema.followUps.scheduledDate, todayStart),
-          lte(schema.followUps.scheduledDate, weekEnd)
-        );
-        break;
-      case "month":
-        dateCondition = and(
-          gte(schema.followUps.scheduledDate, todayStart),
-          lte(schema.followUps.scheduledDate, monthEnd)
-        );
-        break;
-      case "overdue":
-        dateCondition = sql`${schema.followUps.scheduledDate} < ${todayStart.getTime()}`;
-        break;
-      case "all":
-        dateCondition = undefined;
-        break;
+
+    // Range customizado tem precedência sobre filtros pré-definidos
+    if (options.from || options.to) {
+      const fromDate = options.from ? new Date(options.from + "T00:00:00") : null;
+      const toDate = options.to ? new Date(options.to + "T23:59:59.999") : null;
+      const parts = [
+        ...(fromDate ? [gte(schema.followUps.scheduledDate, fromDate)] : []),
+        ...(toDate ? [lte(schema.followUps.scheduledDate, toDate)] : []),
+      ];
+      dateCondition = parts.length ? and(...parts) : undefined;
+    } else {
+      switch (filter) {
+        case "today":
+          dateCondition = and(
+            gte(schema.followUps.scheduledDate, todayStart),
+            lte(schema.followUps.scheduledDate, todayEnd),
+          );
+          break;
+        case "week":
+          dateCondition = and(
+            gte(schema.followUps.scheduledDate, todayStart),
+            lte(schema.followUps.scheduledDate, weekEnd),
+          );
+          break;
+        case "month":
+          dateCondition = and(
+            gte(schema.followUps.scheduledDate, todayStart),
+            lte(schema.followUps.scheduledDate, monthEnd),
+          );
+          break;
+        case "overdue":
+          dateCondition = sql`${schema.followUps.scheduledDate} < ${todayStart.getTime()}`;
+          break;
+        case "all":
+          dateCondition = undefined;
+          break;
+      }
     }
 
+    const status = options.status ?? "pending";
+    const statusCondition =
+      status === "all" ? undefined : eq(schema.followUps.status, status);
+
     const conditions = [
-      eq(schema.followUps.status, "pending"),
+      ...(statusCondition ? [statusCondition] : []),
       ...(dateCondition ? [dateCondition] : []),
       ...(!isAdmin ? [eq(schema.followUps.representativeId, repId)] : []),
     ];
+
+    // Histórico (status != pending) ordena do mais recente; pendentes ordena cronologicamente
+    const orderClause =
+      status === "pending"
+        ? asc(schema.followUps.scheduledDate)
+        : desc(schema.followUps.scheduledDate);
 
     const results = await db
       .select({
@@ -237,14 +263,16 @@ export async function getFollowUps(filter: FollowUpFilter = "today") {
         type: schema.followUps.type,
         status: schema.followUps.status,
         notes: schema.followUps.notes,
+        result: schema.followUps.result,
+        completedAt: schema.followUps.completedAt,
         createdAt: schema.followUps.createdAt,
       })
       .from(schema.followUps)
       .leftJoin(schema.customers, eq(schema.customers.id, schema.followUps.customerId))
       .leftJoin(schema.representatives, eq(schema.representatives.id, schema.followUps.representativeId))
-      .where(and(...conditions))
-      .orderBy(asc(schema.followUps.scheduledDate))
-      .limit(50);
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(orderClause)
+      .limit(100);
 
     return results;
   } catch (err) {
