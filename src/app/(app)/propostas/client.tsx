@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { FileText, ChevronRight } from "lucide-react";
+import { FileText, ChevronRight, SlidersHorizontal } from "lucide-react";
 import {
   Badge,
   Button,
@@ -20,6 +20,7 @@ import {
   TD,
   ConfirmDialog,
 } from "@/components/ui";
+import { DateRangeFilter } from "@/components/date-range-filter";
 import { brl, dateShort } from "@/lib/utils";
 import { PROPOSAL_STATUSES } from "@/lib/db/schema";
 import { deleteProposalAction } from "@/lib/actions/proposals";
@@ -29,6 +30,7 @@ type ProposalRow = {
   status: string;
   validUntil: Date | number | null;
   createdAt: Date | number;
+  customerId: string;
   customerName: string | null;
   repName: string | null;
   productName: string | null;
@@ -57,6 +59,8 @@ export function ProposalList({
   page,
   search,
   statusFilter,
+  from,
+  to,
 }: {
   proposals: ProposalRow[];
   totalsMap: Record<string, { oneTime: number; monthly: number }>;
@@ -65,32 +69,52 @@ export function ProposalList({
   page: number;
   search: string;
   statusFilter: string;
+  from: string;
+  to: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showDateFilter, setShowDateFilter] = useState(!!(from || to));
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  function navigate(newPage: number, newSearch?: string, newStatus?: string) {
-    const s = newSearch ?? search;
-    const st = newStatus ?? statusFilter;
+  function navigate(updates: Partial<{ page: number; q: string; status: string; from: string; to: string }>) {
+    const next = {
+      page: updates.page ?? 1,
+      q: updates.q ?? search,
+      status: updates.status ?? statusFilter,
+      from: updates.from !== undefined ? updates.from : from,
+      to: updates.to !== undefined ? updates.to : to,
+    };
     const params = new URLSearchParams();
-    if (s) params.set("q", s);
-    if (st) params.set("status", st);
-    if (newPage > 1) params.set("page", String(newPage));
+    if (next.q) params.set("q", next.q);
+    if (next.status) params.set("status", next.status);
+    if (next.from) params.set("from", next.from);
+    if (next.to) params.set("to", next.to);
+    if (next.page > 1) params.set("page", String(next.page));
     const qs = params.toString();
     router.push(`${pathname}${qs ? `?${qs}` : ""}`);
   }
 
   function handleSearch(value: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => navigate(1, value), 300);
+    debounceRef.current = setTimeout(() => navigate({ q: value }), 300);
   }
 
   function handleStatusChange(value: string) {
-    navigate(1, undefined, value);
+    navigate({ status: value });
   }
+
+  function handleDateApply(f: string, t: string) {
+    navigate({ from: f, to: t });
+  }
+
+  function handleDateClear() {
+    navigate({ from: "", to: "" });
+  }
+
+  const hasActiveDate = !!(from || to);
 
   async function handleDelete() {
     if (!deleteId) return;
@@ -130,7 +154,31 @@ export function ProposalList({
           className="flex-1"
         />
         <StatusFilter options={STATUS_FILTER_OPTIONS} value={statusFilter} onChange={handleStatusChange} />
+        <Button
+          size="sm"
+          variant={showDateFilter || hasActiveDate ? "secondary" : "ghost"}
+          onClick={() => setShowDateFilter((v) => !v)}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Período
+          {hasActiveDate && (
+            <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[9px] font-bold text-white">
+              ●
+            </span>
+          )}
+        </Button>
       </div>
+
+      {showDateFilter && (
+        <div className="mb-4">
+          <DateRangeFilter
+            from={from}
+            to={to}
+            onApply={handleDateApply}
+            onClear={handleDateClear}
+          />
+        </div>
+      )}
 
       {proposals.length === 0 ? (
         <EmptyState title="Nenhum resultado" hint="Ajuste a busca ou filtro." icon={FileText} />
@@ -260,7 +308,7 @@ export function ProposalList({
         </>
       )}
 
-      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate(p)} />
+      <Pagination total={total} page={page} perPage={PER_PAGE} onChange={(p) => navigate({ page: p })} />
 
       <ConfirmDialog
         open={!!deleteId}

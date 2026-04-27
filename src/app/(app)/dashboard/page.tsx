@@ -55,15 +55,33 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-export default async function DashboardPage() {
-  const { isAdmin, repId, session } = await requireScope();
+type SearchParams = Promise<{ range?: string }>;
 
+const VALID_RANGES = [7, 30, 90, 365] as const;
+type Range = (typeof VALID_RANGES)[number];
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const { isAdmin, repId, session } = await requireScope();
+  const params = await searchParams;
+  const rangeRaw = parseInt(params.range ?? "30", 10);
+  const range: Range = (VALID_RANGES as readonly number[]).includes(rangeRaw)
+    ? (rangeRaw as Range)
+    : 30;
+
+  // Início do período selecionado (substitui firstOfMonth como filtro principal)
+  const periodStart = daysAgo(range - 1);
+  // Período anterior do mesmo tamanho — pra calcular delta
+  const previousPeriodStart = daysAgo(range * 2 - 1);
+
+  // Mantemos firstOfMonth para queries que ainda fazem sentido em recorte mensal
+  // (comissões pagas no mês corrente)
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);
   firstOfMonth.setHours(0, 0, 0, 0);
-
-  const firstOfLastMonth = new Date(firstOfMonth);
-  firstOfLastMonth.setMonth(firstOfLastMonth.getMonth() - 1);
 
   // Scope helpers
   const scopeSales = (extra: SQL | undefined) =>
@@ -107,21 +125,21 @@ export default async function DashboardPage() {
     recentSales,
     todayFollowUps,
   ] = await Promise.all([
-    // 1. Vendas do mes
+    // 1. Vendas no período selecionado
     db.select({
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
       count: sql<number>`count(*)`,
     }).from(schema.sales).where(
-      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, firstOfMonth)))
+      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, periodStart)))
     ),
-    // 2. Vendas mes passado
+    // 2. Vendas do período anterior (pra calcular delta %)
     db.select({
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
     }).from(schema.sales).where(
       scopeSales(and(
         eq(schema.sales.status, "approved"),
-        gte(schema.sales.createdAt, firstOfLastMonth),
-        sql`${schema.sales.createdAt} < ${firstOfMonth.getTime()}`
+        gte(schema.sales.createdAt, previousPeriodStart),
+        sql`${schema.sales.createdAt} < ${periodStart.getTime()}`
       ))
     ),
     // 3. Comissoes pendentes
@@ -141,14 +159,14 @@ export default async function DashboardPage() {
     ),
     // 6. Total clientes
     db.select({ count: sql<number>`count(*)` }).from(schema.customers).where(scopeCustomers),
-    // 7. Receita diaria (grafico)
+    // 7. Receita diária (gráfico) — usa o período selecionado
     db.select({
       day: sql<string>`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`,
       total: sql<number>`coalesce(sum(${schema.sales.total}), 0)`,
     }).from(schema.sales).where(
-      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, daysAgo(29))))
+      scopeSales(and(eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, periodStart)))
     ).groupBy(sql`strftime('%Y-%m-%d', datetime(${schema.sales.createdAt} / 1000, 'unixepoch'))`),
-    // 8. Ranking reps
+    // 8. Ranking reps no período selecionado
     db.select({
       repId: schema.representatives.id,
       repName: schema.representatives.name,
@@ -157,7 +175,7 @@ export default async function DashboardPage() {
     }).from(schema.representatives).leftJoin(schema.sales, and(
       eq(schema.sales.representativeId, schema.representatives.id),
       eq(schema.sales.status, "approved"),
-      gte(schema.sales.createdAt, firstOfMonth)
+      gte(schema.sales.createdAt, periodStart)
     )).groupBy(schema.representatives.id)
       .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`)).limit(5),
     // 9. Propostas expirando
@@ -212,7 +230,7 @@ export default async function DashboardPage() {
 
   const dailyMap = new Map(dailyRaw.map((r) => [r.day, r.total]));
   const daily: { day: string; total: number }[] = [];
-  for (let i = 29; i >= 0; i--) {
+  for (let i = range - 1; i >= 0; i--) {
     const d = daysAgo(i);
     const key = d.toISOString().slice(0, 10);
     daily.push({ day: key, total: dailyMap.get(key) ?? 0 });
@@ -220,7 +238,7 @@ export default async function DashboardPage() {
   const sparkSales = daily.map((d) => d.total);
   const rankingTop = ranking[0]?.totalSales ?? 0;
 
-  // Top customers (rep only) — depende de repId, roda separado
+  // Top customers (rep only) — depende de repId, usa o período selecionado
   let topCustomers: { id: string; name: string; total: number }[] = [];
   if (!isAdmin && repId) {
     topCustomers = await db
@@ -230,7 +248,7 @@ export default async function DashboardPage() {
       })
       .from(schema.sales)
       .innerJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-      .where(and(eq(schema.sales.representativeId, repId), eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, firstOfMonth)))
+      .where(and(eq(schema.sales.representativeId, repId), eq(schema.sales.status, "approved"), gte(schema.sales.createdAt, periodStart)))
       .groupBy(schema.customers.id)
       .orderBy(desc(sql`coalesce(sum(${schema.sales.total}), 0)`))
       .limit(3);
@@ -241,7 +259,7 @@ export default async function DashboardPage() {
       <PageHeader
         title={isAdmin ? "Dashboard" : `Olá, ${session.name.split(" ")[0]}`}
         description={
-          isAdmin ? "Visão geral da operação comercial" : "Sua operação neste mês"
+          isAdmin ? "Visão geral da operação comercial" : `Sua operação nos últimos ${range} dias`
         }
         actions={
           <Link href="/vendas/nova">
@@ -253,9 +271,34 @@ export default async function DashboardPage() {
         }
       />
 
+      {/* Seletor de período */}
+      <div className="mb-6 inline-flex rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface-2)] p-1">
+        {([
+          { value: 7, label: "7 dias" },
+          { value: 30, label: "30 dias" },
+          { value: 90, label: "90 dias" },
+          { value: 365, label: "12 meses" },
+        ] as const).map((opt) => {
+          const active = range === opt.value;
+          return (
+            <Link
+              key={opt.value}
+              href={opt.value === 30 ? "/dashboard" : `/dashboard?range=${opt.value}`}
+              className={`rounded-[var(--radius-sm)] px-4 py-1.5 text-xs font-semibold transition-all ${
+                active
+                  ? "bg-[var(--color-primary)] text-white shadow-sm"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              }`}
+            >
+              {opt.label}
+            </Link>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label={isAdmin ? "Vendas no mês" : "Suas vendas no mês"}
+          label={isAdmin ? `Vendas (${range}d)` : `Suas vendas (${range}d)`}
           value={brl(salesMonth?.total ?? 0)}
           delta={delta}
           hint={`${salesMonth?.count ?? 0} venda(s) aprovada(s)`}
@@ -367,12 +410,12 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold">Receita — últimos 30 dias</h2>
+              <h2 className="text-sm font-semibold">Receita — últimos {range} dias</h2>
               <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
                 Vendas aprovadas por dia
               </p>
             </div>
-            <Badge tone="brand">30d</Badge>
+            <Badge tone="brand">{range}d</Badge>
           </div>
           <div className="h-64">
             <RevenueChart data={daily} />
@@ -384,7 +427,7 @@ export default async function DashboardPage() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold">
                 <Trophy className="h-4 w-4 text-amber-400" />
-                Ranking do mês
+                Ranking ({range}d)
               </h2>
             </div>
             {ranking.length === 0 ? (

@@ -1,10 +1,10 @@
 import { db, schema } from "@/lib/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or, like, sql } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { brl, dateShort, csvSafe } from "@/lib/utils";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { isAdmin, repId, session } = await requireScope();
 
   const { blocked } = await checkRateLimit(`export-comissoes:${session.sub}`, {
@@ -15,7 +15,36 @@ export async function GET() {
     return new Response("Muitas requisições. Aguarde.", { status: 429 });
   }
 
-  const where = isAdmin ? undefined : eq(schema.commissions.representativeId, repId!);
+  const url = new URL(request.url);
+  const search = (url.searchParams.get("q") ?? "").trim();
+  const statusFilter = url.searchParams.get("status") ?? "";
+  const from = url.searchParams.get("from") ?? "";
+  const to = url.searchParams.get("to") ?? "";
+
+  const scopeWhere = isAdmin ? undefined : eq(schema.commissions.representativeId, repId!);
+  const statusWhere = statusFilter ? eq(schema.commissions.status, statusFilter) : undefined;
+
+  const fromDate = from ? new Date(from + "T00:00:00") : null;
+  const toDate = to ? new Date(to + "T23:59:59.999") : null;
+  const dateWhere = fromDate || toDate
+    ? sql.join(
+        [
+          ...(fromDate ? [sql`${schema.commissions.createdAt} >= ${fromDate.getTime()}`] : []),
+          ...(toDate ? [sql`${schema.commissions.createdAt} <= ${toDate.getTime()}`] : []),
+        ],
+        sql` AND `,
+      )
+    : undefined;
+
+  const searchWhere = search
+    ? or(
+        like(schema.representatives.name, `%${search}%`),
+        like(schema.customers.name, `%${search}%`),
+      )
+    : undefined;
+
+  const conditions = [scopeWhere, statusWhere, dateWhere, searchWhere].filter(Boolean);
+  const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
   const rows = await db
     .select({
@@ -32,7 +61,7 @@ export async function GET() {
     .leftJoin(schema.sales, eq(schema.sales.id, schema.commissions.saleId))
     .leftJoin(schema.representatives, eq(schema.representatives.id, schema.commissions.representativeId))
     .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
-    .where(where)
+    .where(whereClause)
     .orderBy(desc(schema.commissions.createdAt))
     .limit(10000);
 
@@ -46,15 +75,18 @@ export async function GET() {
       brl(c.amount),
       c.status === "paid" ? "Paga" : "Pendente",
       dateShort(c.paidAt),
-    ].join(";")
+    ].join(";"),
   );
 
-  const csv = "\uFEFF" + [header, ...csvRows].join("\n");
+  const csv = "﻿" + [header, ...csvRows].join("\n");
+
+  const suffix = (from || to || statusFilter || search) ? "-filtrado" : "";
+  const today = new Date().toISOString().slice(0, 10);
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="comissoes-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="comissoes-${today}${suffix}.csv"`,
     },
   });
 }

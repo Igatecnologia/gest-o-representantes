@@ -1,7 +1,13 @@
 import { db, schema } from "@/lib/db";
 import { desc, eq, or, like, sql } from "drizzle-orm";
-import { Wallet, Download } from "lucide-react";
-import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui";
+import {
+  Wallet,
+  Clock,
+  CheckCircle2,
+  TrendingUp,
+} from "lucide-react";
+import { Card, PageHeader } from "@/components/ui";
+import { PageStats, type PageStat } from "@/components/page-stats";
 import { brl } from "@/lib/utils";
 import { requireScope } from "@/lib/auth";
 import { CommissionList } from "./client";
@@ -13,16 +19,37 @@ const PER_PAGE = 20;
 export default async function CommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; status?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    status?: string;
+    from?: string;
+    to?: string;
+  }>;
 }) {
   const { isAdmin, repId } = await requireScope();
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const search = (params.q ?? "").trim();
   const statusFilter = params.status ?? "";
+  const from = params.from ?? "";
+  const to = params.to ?? "";
 
   const scopeWhere = isAdmin ? undefined : eq(schema.commissions.representativeId, repId);
   const statusWhere = statusFilter ? eq(schema.commissions.status, statusFilter) : undefined;
+
+  // Range de data — filtra pela createdAt da comissão
+  const fromDate = from ? new Date(from + "T00:00:00") : null;
+  const toDate = to ? new Date(to + "T23:59:59.999") : null;
+  const dateWhere = fromDate || toDate
+    ? sql.join(
+        [
+          ...(fromDate ? [sql`${schema.commissions.createdAt} >= ${fromDate.getTime()}`] : []),
+          ...(toDate ? [sql`${schema.commissions.createdAt} <= ${toDate.getTime()}`] : []),
+        ],
+        sql` AND `,
+      )
+    : undefined;
 
   const searchWhere = search
     ? or(
@@ -31,7 +58,7 @@ export default async function CommissionsPage({
       )
     : undefined;
 
-  const conditions = [scopeWhere, statusWhere, searchWhere].filter(Boolean);
+  const conditions = [scopeWhere, statusWhere, dateWhere, searchWhere].filter(Boolean);
   const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
   const [[{ total }], rows, summaryByRep] = await Promise.all([
@@ -86,46 +113,68 @@ export default async function CommissionsPage({
     ),
   ]);
 
+  // Totais consolidados (todos os reps quando admin, próprio quando rep)
+  const totalPending = summaryByRep.reduce((acc, r) => acc + (r.pending ?? 0), 0);
+  const totalPaid = summaryByRep.reduce((acc, r) => acc + (r.paid ?? 0), 0);
+
+  const stats: PageStat[] = [
+    {
+      label: "A receber",
+      value: brl(totalPending),
+      hint: "comissões pendentes",
+      tone: "amber",
+      icon: Clock,
+    },
+    {
+      label: "Já pago",
+      value: brl(totalPaid),
+      hint: "acumulado histórico",
+      tone: "emerald",
+      icon: CheckCircle2,
+    },
+    {
+      label: "Total geral",
+      value: brl(totalPending + totalPaid),
+      hint: "soma comissões",
+      tone: "primary",
+      icon: TrendingUp,
+    },
+  ];
+
   return (
     <>
       <PageHeader
-        title={isAdmin ? "Comissoes" : "Minhas comissoes"}
-        description={isAdmin ? "Controle de comissao por venda" : "Acompanhe o que voce tem a receber"}
+        title={isAdmin ? "Comissões" : "Minhas comissões"}
+        description={isAdmin ? "Controle de comissão por venda" : "Acompanhe o que você tem a receber"}
         icon={Wallet}
-        actions={
-          total > 0 ? (
-            <a href="/api/export/comissoes">
-              <Button variant="secondary">
-                <Download className="h-4 w-4" />
-                CSV
-              </Button>
-            </a>
-          ) : undefined
-        }
       />
 
-      {summaryByRep.length > 0 && (
+      <PageStats stats={stats} />
+
+      {isAdmin && summaryByRep.length > 1 && (
         <Card className="mb-6">
-          <h2 className="mb-4 text-sm font-semibold">
-            {isAdmin ? "Resumo por representante" : "Seu resumo"}
-          </h2>
+          <h2 className="mb-4 text-sm font-semibold">Resumo por representante</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
             {summaryByRep.map((r) => (
               <div
                 key={r.repId}
-                className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-4 py-3"
+                className="rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface-2)]/40 px-4 py-3 transition-shadow hover:shadow-sm"
               >
-                <div className="text-sm font-medium">{r.repName}</div>
+                <div className="text-sm font-semibold">{r.repName}</div>
                 <div className="mt-2 flex justify-between text-xs">
                   <div>
-                    <div className="text-[var(--color-text-muted)]">Pendente</div>
-                    <div className="mt-0.5 text-sm font-semibold text-amber-400 tabular-nums">
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                      Pendente
+                    </div>
+                    <div className="mt-0.5 text-sm font-bold text-amber-500 tabular-nums">
                       {brl(r.pending ?? 0)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[var(--color-text-muted)]">Pago</div>
-                    <div className="mt-0.5 text-sm font-semibold text-emerald-400 tabular-nums">
+                    <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                      Pago
+                    </div>
+                    <div className="mt-0.5 text-sm font-bold text-emerald-500 tabular-nums">
                       {brl(r.paid ?? 0)}
                     </div>
                   </div>
@@ -143,6 +192,8 @@ export default async function CommissionsPage({
         page={page}
         search={search}
         statusFilter={statusFilter}
+        from={from}
+        to={to}
       />
     </>
   );

@@ -1,10 +1,10 @@
 import { db, schema } from "@/lib/db";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, or, like, sql } from "drizzle-orm";
 import { requireScope } from "@/lib/auth";
 import { brl, dateShort, csvSafe } from "@/lib/utils";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { isAdmin, repId, session } = await requireScope();
 
   const { blocked } = await checkRateLimit(`export-vendas:${session.sub}`, {
@@ -15,7 +15,38 @@ export async function GET() {
     return new Response("Muitas requisições. Aguarde.", { status: 429 });
   }
 
-  const where = isAdmin ? undefined : eq(schema.sales.representativeId, repId!);
+  // Mesmos filtros da página /vendas — assim CSV reflete o que está visível
+  const url = new URL(request.url);
+  const search = (url.searchParams.get("q") ?? "").trim();
+  const statusFilter = url.searchParams.get("status") ?? "";
+  const from = url.searchParams.get("from") ?? "";
+  const to = url.searchParams.get("to") ?? "";
+
+  const scopeWhere = isAdmin ? undefined : eq(schema.sales.representativeId, repId!);
+  const statusWhere = statusFilter ? eq(schema.sales.status, statusFilter) : undefined;
+
+  const fromDate = from ? new Date(from + "T00:00:00") : null;
+  const toDate = to ? new Date(to + "T23:59:59.999") : null;
+  const dateWhere = fromDate || toDate
+    ? sql.join(
+        [
+          ...(fromDate ? [sql`${schema.sales.createdAt} >= ${fromDate.getTime()}`] : []),
+          ...(toDate ? [sql`${schema.sales.createdAt} <= ${toDate.getTime()}`] : []),
+        ],
+        sql` AND `,
+      )
+    : undefined;
+
+  const searchWhere = search
+    ? or(
+        like(schema.customers.name, `%${search}%`),
+        like(schema.products.name, `%${search}%`),
+        like(schema.representatives.name, `%${search}%`),
+      )
+    : undefined;
+
+  const conditions = [scopeWhere, statusWhere, dateWhere, searchWhere].filter(Boolean);
+  const whereClause = conditions.length > 0 ? sql.join(conditions, sql` AND `) : undefined;
 
   const sales = await db
     .select({
@@ -34,7 +65,7 @@ export async function GET() {
     .leftJoin(schema.representatives, eq(schema.representatives.id, schema.sales.representativeId))
     .leftJoin(schema.customers, eq(schema.customers.id, schema.sales.customerId))
     .leftJoin(schema.products, eq(schema.products.id, schema.sales.productId))
-    .where(where)
+    .where(whereClause)
     .orderBy(desc(schema.sales.createdAt))
     .limit(10000);
 
@@ -50,15 +81,19 @@ export async function GET() {
       brl(s.discount),
       brl(s.total),
       s.status === "approved" ? "Aprovada" : s.status === "pending" ? "Pendente" : "Cancelada",
-    ].join(";")
+    ].join(";"),
   );
 
-  const csv = "\uFEFF" + [header, ...rows].join("\n");
+  const csv = "﻿" + [header, ...rows].join("\n");
+
+  // Sufixo no filename indicando se é filtrado
+  const suffix = (from || to || statusFilter || search) ? "-filtrado" : "";
+  const today = new Date().toISOString().slice(0, 10);
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="vendas-${new Date().toISOString().slice(0, 10)}.csv"`,
+      "Content-Disposition": `attachment; filename="vendas-${today}${suffix}.csv"`,
     },
   });
 }
