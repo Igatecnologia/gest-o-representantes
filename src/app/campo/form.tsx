@@ -67,6 +67,12 @@ export function FieldForm() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsOk, setGpsOk] = useState(false);
   const [success, setSuccess] = useState(false);
+  // Wizard mobile-first: 1 = identificação, 2 = endereço, 3 = revisão
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Validação por step antes de avançar
+  const canAdvanceFromStep1 = f.name.trim().length >= 2;
+  const canAdvanceFromStep2 = true; // endereço é opcional
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setF((prev) => ({ ...prev, [k]: v }));
@@ -237,6 +243,39 @@ export function FieldForm() {
         </div>
       </header>
 
+      {/* Progress bar do wizard */}
+      <div className="sticky top-[57px] z-10 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 px-4 py-2.5 backdrop-blur-xl">
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map((n, i) => (
+            <div key={n} className="flex flex-1 items-center gap-2">
+              <div
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
+                  step >= n
+                    ? "bg-[var(--color-primary)] text-white"
+                    : "bg-[var(--color-surface-2)] text-[var(--color-text-muted)]"
+                }`}
+              >
+                {step > n ? "✓" : n}
+              </div>
+              {i < 2 && (
+                <div
+                  className={`h-0.5 flex-1 rounded-full transition-colors ${
+                    step > n
+                      ? "bg-[var(--color-primary)]"
+                      : "bg-[var(--color-surface-2)]"
+                  }`}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+          {step === 1 && "Passo 1 de 3 — Dados do cliente"}
+          {step === 2 && "Passo 2 de 3 — Endereço (opcional)"}
+          {step === 3 && "Passo 3 de 3 — Revisar e enviar"}
+        </p>
+      </div>
+
       <form action={action} className="space-y-6 p-4">
         {/* GPS */}
         <button
@@ -283,8 +322,8 @@ export function FieldForm() {
         <input type="hidden" name="latitude" value={f.latitude} />
         <input type="hidden" name="longitude" value={f.longitude} />
 
-        {/* Identificação */}
-        <section className="space-y-3">
+        {/* Step 1: Identificação */}
+        <section className={`space-y-3 ${step === 1 ? "" : "hidden"}`}>
           <div className="flex items-center gap-2">
             <Sparkles className="h-3.5 w-3.5 text-[var(--color-primary)]" />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -381,8 +420,8 @@ export function FieldForm() {
           />
         </section>
 
-        {/* Endereço */}
-        <section className="space-y-3">
+        {/* Step 2: Endereço */}
+        <section className={`space-y-3 ${step === 2 ? "" : "hidden"}`}>
           <div className="flex items-center gap-2">
             <MapPin className="h-3.5 w-3.5 text-[var(--color-primary)]" />
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -460,20 +499,81 @@ export function FieldForm() {
           </div>
         </section>
 
-        {/* Observações */}
-        <section>
-          <label className="mb-1.5 block text-xs text-[var(--color-text-muted)]">
-            Observações da visita
-          </label>
-          <textarea
-            name="notes"
-            rows={3}
-            value={f.notes}
-            onChange={(e) => set("notes", e.target.value)}
-            placeholder="Interesse, produtos, próximos passos..."
-            className="w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base"
-          />
+        {/* Step 3: Revisar + observações */}
+        <section className={`space-y-4 ${step === 3 ? "" : "hidden"}`}>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-3.5 w-3.5 text-[var(--color-success)]" />
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+              Revisar
+            </h3>
+          </div>
+
+          {/* Resumo */}
+          <div className="space-y-2 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-xs">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[var(--color-text-muted)]">Tipo</span>
+              <span className="font-medium">
+                {f.personType === "pj" ? "Pessoa Jurídica" : "Pessoa Física"}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-[var(--color-text-muted)]">Nome</span>
+              <span className="font-medium truncate ml-2 text-right">
+                {f.name || <span className="text-[var(--color-danger)]">faltando</span>}
+              </span>
+            </div>
+            {f.document && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-[var(--color-text-muted)]">Documento</span>
+                <span className="font-mono">{f.document}</span>
+              </div>
+            )}
+            {f.phone && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-[var(--color-text-muted)]">Telefone</span>
+                <span>{f.phone}</span>
+              </div>
+            )}
+            {f.email && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-[var(--color-text-muted)]">E-mail</span>
+                <span className="truncate ml-2">{f.email}</span>
+              </div>
+            )}
+            {(f.city || f.state) && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-[var(--color-text-muted)]">Cidade</span>
+                <span>
+                  {f.city}
+                  {f.state ? `/${f.state}` : ""}
+                </span>
+              </div>
+            )}
+            {f.latitude && f.longitude && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-[var(--color-text-muted)]">GPS</span>
+                <span className="text-emerald-500 text-[10px]">✓ capturado</span>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs text-[var(--color-text-muted)]">
+              Observações da visita
+            </label>
+            <textarea
+              name="notes"
+              rows={3}
+              value={f.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              placeholder="Interesse, produtos, próximos passos..."
+              className="w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-base"
+            />
+          </div>
         </section>
+
+        {/* Sempre presentes no DOM (notes precisa estar no FormData) */}
+        {step !== 3 && <input type="hidden" name="notes" value={f.notes} />}
 
         {state.error && (
           <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
@@ -482,22 +582,50 @@ export function FieldForm() {
         )}
       </form>
 
-      {/* Submit fixo no rodapé */}
+      {/* Footer fixo: Voltar / Próximo / Enviar (varia por step) */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-bg)]/90 p-4 backdrop-blur-xl">
-        <div className="mx-auto max-w-md">
-          <button
-            type="submit"
-            form=""
-            onClick={(e) => {
-              // dispara submit do form pai
-              const form = document.querySelector("form");
-              form?.requestSubmit();
-            }}
-            disabled={pending}
-            className="w-full rounded-[var(--radius)] bg-gradient-brand px-5 py-4 text-base font-semibold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
-          >
-            {pending ? "Enviando..." : "Cadastrar cliente"}
-          </button>
+        <div className="mx-auto flex max-w-md gap-2">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s))}
+              className="flex-1 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 text-base font-medium text-[var(--color-text)] active:scale-[0.98]"
+            >
+              ← Voltar
+            </button>
+          )}
+
+          {step < 3 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (step === 1 && !canAdvanceFromStep1) {
+                  toast.error("Informe o nome do cliente.");
+                  return;
+                }
+                setStep((s) => (s < 3 ? ((s + 1) as 1 | 2 | 3) : s));
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="flex-[2] rounded-[var(--radius)] bg-gradient-brand px-5 py-4 text-base font-semibold text-white shadow-md active:scale-[0.98]"
+            >
+              Próximo →
+            </button>
+          )}
+
+          {step === 3 && (
+            <button
+              type="submit"
+              form=""
+              onClick={() => {
+                const form = document.querySelector("form");
+                form?.requestSubmit();
+              }}
+              disabled={pending}
+              className="flex-[2] rounded-[var(--radius)] bg-gradient-brand px-5 py-4 text-base font-semibold text-white shadow-md active:scale-[0.98] disabled:opacity-50"
+            >
+              {pending ? "Enviando..." : "✓ Cadastrar cliente"}
+            </button>
+          )}
         </div>
       </div>
     </div>

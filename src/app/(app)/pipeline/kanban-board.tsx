@@ -79,6 +79,8 @@ export function KanbanBoard({
   viewMode,
   grandForecast,
   wonTotal,
+  pipelines,
+  funilFilter,
 }: {
   columns: Column[];
   search: string;
@@ -89,6 +91,8 @@ export function KanbanBoard({
   viewMode: "kanban" | "list";
   grandForecast: number;
   wonTotal: number;
+  pipelines: { id: string; name: string; color: string }[];
+  funilFilter: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,19 +105,27 @@ export function KanbanBoard({
   }, [columns]);
 
   function navigate(
-    updates: Partial<{ q: string; rep: string; sort: string; view: string }>,
+    updates: Partial<{
+      q: string;
+      rep: string;
+      sort: string;
+      view: string;
+      funil: string;
+    }>,
   ) {
     const next = {
       q: updates.q ?? search,
       rep: updates.rep !== undefined ? updates.rep : repFilter,
       sort: updates.sort !== undefined ? updates.sort : sortKey,
       view: updates.view !== undefined ? updates.view : viewMode,
+      funil: updates.funil !== undefined ? updates.funil : funilFilter,
     };
     const params = new URLSearchParams();
     if (next.q) params.set("q", next.q);
     if (next.rep) params.set("rep", next.rep);
     if (next.sort && next.sort !== "created") params.set("sort", next.sort);
     if (next.view && next.view !== "kanban") params.set("view", next.view);
+    if (next.funil) params.set("funil", next.funil);
     const qs = params.toString();
     router.push(`${pathname}${qs ? `?${qs}` : ""}`);
   }
@@ -187,6 +199,51 @@ export function KanbanBoard({
 
   return (
     <>
+      {/* Seletor de funil — só aparece se admin definiu múltiplos */}
+      {pipelines.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => navigate({ funil: "" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-[var(--radius)] border px-3 py-1.5 text-xs font-medium transition-all",
+              !funilFilter
+                ? "border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+            )}
+          >
+            Todos os funis
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate({ funil: "default" })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-[var(--radius)] border px-3 py-1.5 text-xs font-medium transition-all",
+              funilFilter === "default"
+                ? "border-[var(--color-text-muted)]/40 bg-[var(--color-surface-2)] text-[var(--color-text)]"
+                : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+            )}
+          >
+            Padrão
+          </button>
+          {pipelines.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => navigate({ funil: p.id })}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-[var(--radius)] border px-3 py-1.5 text-xs font-medium transition-all",
+                funilFilter === p.id
+                  ? "border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
+                  : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]",
+              )}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Forecast bar — visão executiva */}
       <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] border-l-[var(--color-primary)] bg-[var(--color-surface)] px-4 py-3">

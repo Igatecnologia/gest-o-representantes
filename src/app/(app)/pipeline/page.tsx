@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { db, schema } from "@/lib/db";
-import { desc, eq, and, or, like, sql, asc } from "drizzle-orm";
+import { desc, eq, and, or, like, sql, asc, isNull } from "drizzle-orm";
 import { DEAL_STAGES } from "@/lib/db/schema";
 import { Button, PageHeader } from "@/components/ui";
 import { KanbanBoard } from "./kanban-board";
 import { Kanban, Plus } from "lucide-react";
 import { requireScope } from "@/lib/auth";
+import { getActivePipelines } from "@/lib/actions/pipelines";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function PipelinePage({
     rep?: string;
     sort?: string;
     view?: string;
+    funil?: string;
   }>;
 }) {
   const { isAdmin, repId } = await requireScope();
@@ -28,9 +30,15 @@ export default async function PipelinePage({
   const repFilter = isAdmin ? (params.rep ?? "") : "";
   const sortKey = (params.sort as SortKey) || "created";
   const viewMode = (params.view as ViewMode) || "kanban";
+  const funilFilter = params.funil ?? "";
 
   const scopeWhere = isAdmin ? undefined : eq(schema.deals.representativeId, repId);
   const repWhere = repFilter ? eq(schema.deals.representativeId, repFilter) : undefined;
+  const funilWhere = funilFilter
+    ? funilFilter === "default"
+      ? isNull(schema.deals.pipelineId)
+      : eq(schema.deals.pipelineId, funilFilter)
+    : undefined;
   const searchWhere = search
     ? or(
         like(schema.deals.title, `%${search}%`),
@@ -38,7 +46,7 @@ export default async function PipelinePage({
       )
     : undefined;
 
-  const conditions = [scopeWhere, repWhere, searchWhere].filter(Boolean);
+  const conditions = [scopeWhere, repWhere, funilWhere, searchWhere].filter(Boolean);
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
   const orderClause = (() => {
@@ -57,7 +65,7 @@ export default async function PipelinePage({
     }
   })();
 
-  const [rows, repsList] = await Promise.all([
+  const [rows, repsList, pipelines] = await Promise.all([
     db
       .select({
         id: schema.deals.id,
@@ -92,6 +100,7 @@ export default async function PipelinePage({
           .where(eq(schema.representatives.active, true))
           .orderBy(schema.representatives.name)
       : Promise.resolve([] as { id: string; name: string }[]),
+    getActivePipelines(),
   ]);
 
   // Marca deals "parados" — sem movimentação há 30+ dias na mesma stage.
@@ -154,6 +163,8 @@ export default async function PipelinePage({
         viewMode={viewMode}
         grandForecast={grandForecast}
         wonTotal={wonTotal}
+        pipelines={pipelines}
+        funilFilter={funilFilter}
       />
     </>
   );
