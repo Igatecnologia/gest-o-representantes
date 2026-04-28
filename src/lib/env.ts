@@ -8,6 +8,10 @@ const envSchema = z.object({
     .string()
     .min(1, "DATABASE_URL é obrigatório (ex: file:./data.db ou libsql://...)"),
   DATABASE_AUTH_TOKEN: z.string().optional(),
+  // Push notifications (VAPID) — opcional; se ausente, push é desabilitado
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

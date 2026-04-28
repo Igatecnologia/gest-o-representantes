@@ -298,6 +298,25 @@ export const TEMPLATE_CATEGORIES = [
 
 export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number]["id"];
 
+export const pushSubscriptions = sqliteTable("push_subscriptions", {
+  id: id(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // Endpoint único do navegador — chave pra dedupe
+  endpoint: text("endpoint").notNull().unique(),
+  // Chaves de criptografia para web-push
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  // User agent pra distinguir devices do mesmo user
+  userAgent: text("user_agent"),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_push_user").on(t.userId),
+]);
+
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect;
+
 export const visits = sqliteTable("visits", {
   id: id(),
   customerId: text("customer_id")
