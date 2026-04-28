@@ -29,6 +29,20 @@
       "when": 1777333325829,
       "tag": "0003_sleepy_purifiers",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1777334024121,
+      "tag": "0004_curvy_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1777334131585,
+      "tag": "0005_fixed_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }

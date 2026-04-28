@@ -142,6 +142,8 @@ export const deals = sqliteTable("deals", {
   productId: text("product_id").references(() => products.id, {
     onDelete: "set null",
   }),
+  // Funil ao qual o deal pertence — null = funil padrão (legado)
+  pipelineId: text("pipeline_id"),
   value: integer("value").notNull().default(0), // centavos
   // stage: lead | qualified | proposal | negotiation | won | lost
   stage: text("stage").notNull().default("lead"),
@@ -254,6 +256,47 @@ export const attachments = sqliteTable("attachments", {
 ]);
 
 export type Attachment = typeof attachments.$inferSelect;
+
+export const pipelines = sqliteTable("pipelines", {
+  id: id(),
+  name: text("name").notNull(),
+  // Ordem de exibição (asc)
+  position: integer("position").notNull().default(0),
+  // Cor pra distinguir visualmente (hex ou nome do tone)
+  color: text("color").notNull().default("primary"),
+  // Pipeline padrão — primeiro a aparecer; só 1 pode ser default
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_pipelines_position").on(t.position),
+]);
+
+export type Pipeline = typeof pipelines.$inferSelect;
+
+export const messageTemplates = sqliteTable("message_templates", {
+  id: id(),
+  // whatsapp | proposal_intro | followup
+  category: text("category").notNull().default("whatsapp"),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  // Placeholders disponíveis: {{nome}}, {{primeiroNome}}, {{produto}}, {{representante}}
+  // Apenas info — substituição feita no client.
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: createdAt(),
+}, (t) => [
+  index("idx_templates_category").on(t.category),
+]);
+
+export type MessageTemplate = typeof messageTemplates.$inferSelect;
+
+export const TEMPLATE_CATEGORIES = [
+  { id: "whatsapp", label: "WhatsApp" },
+  { id: "proposal_intro", label: "Intro de proposta" },
+  { id: "followup", label: "Retorno" },
+] as const;
+
+export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number]["id"];
 
 export const visits = sqliteTable("visits", {
   id: id(),
