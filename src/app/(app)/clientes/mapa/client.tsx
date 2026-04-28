@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { ExternalLink, Phone, MapPin } from "lucide-react";
+// CSS do Leaflet bundleado localmente — evita problema de CSP/CDN bloqueado
+import "leaflet/dist/leaflet.css";
 
 type CustomerPin = {
   id: string;
@@ -30,15 +32,6 @@ export function CustomerMap({ customers }: { customers: CustomerPin[] }) {
 
     async function setup() {
       const L = await import("leaflet");
-      // Inject CSS
-      if (!document.querySelector("link[data-leaflet]")) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        link.crossOrigin = "";
-        link.dataset.leaflet = "true";
-        document.head.appendChild(link);
-      }
 
       if (!mounted || !mapContainer.current) return;
 

@@ -132,58 +132,64 @@ export default async function CustomerPage({
       </Link>
 
       {/* Header */}
-      <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <Avatar name={customer.name} size="lg" />
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
-              {customer.tradeName && customer.tradeName !== customer.name && (
-                <p className="text-sm text-[var(--color-text-muted)]">
-                  {customer.tradeName}
-                </p>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {customer.document && (
-                  <Badge tone="default" className="font-mono">
-                    {maskCnpj(customer.document)}
-                  </Badge>
-                )}
-                <Badge tone="brand">
-                  <Building2 className="h-3 w-3" />
-                  Cliente
+      <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:mb-8 md:p-6">
+        {/* Linha 1: avatar + título + badges */}
+        <div className="flex items-start gap-3 md:gap-4">
+          <Avatar name={customer.name} size="md" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-semibold tracking-tight md:text-2xl">
+              {customer.name}
+            </h1>
+            {customer.tradeName && customer.tradeName !== customer.name && (
+              <p className="truncate text-xs text-[var(--color-text-muted)] md:text-sm">
+                {customer.tradeName}
+              </p>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {customer.document && (
+                <Badge tone="default" className="font-mono">
+                  {maskCnpj(customer.document)}
                 </Badge>
-                {customer.source && customer.source !== "web" && (
-                  <Badge tone="info">{customer.source}</Badge>
-                )}
-              </div>
+              )}
+              <Badge tone="brand">
+                <Building2 className="h-3 w-3" />
+                Cliente
+              </Badge>
+              {customer.source && customer.source !== "web" && (
+                <Badge tone="info">{customer.source}</Badge>
+              )}
             </div>
           </div>
+        </div>
 
-          <div className="flex flex-wrap gap-2">
+        {/* Linha 2: ações — full width no mobile, scroll horizontal */}
+        <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 md:mt-4 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
+          <div className="shrink-0">
             <WhatsAppButton
               phone={customer.phone}
               customerName={customer.name}
             />
-            <Link href={`/clientes/${customer.id}/editar`}>
-              <Button variant="secondary" size="sm">
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Button>
-            </Link>
-            <Link href={`/propostas/nova?customerId=${customer.id}`}>
-              <Button size="sm">
-                <FileText className="h-3.5 w-3.5" />
-                Nova proposta
-              </Button>
-            </Link>
-            <Link href={`/vendas/nova?customerId=${customer.id}`}>
-              <Button variant="secondary" size="sm">
-                <Plus className="h-3.5 w-3.5" />
-                Nova venda
-              </Button>
-            </Link>
           </div>
+          <Link href={`/propostas/nova?customerId=${customer.id}`} className="shrink-0">
+            <Button size="sm">
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova proposta</span>
+              <span className="sm:hidden">Proposta</span>
+            </Button>
+          </Link>
+          <Link href={`/vendas/nova?customerId=${customer.id}`} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nova venda</span>
+              <span className="sm:hidden">Venda</span>
+            </Button>
+          </Link>
+          <Link href={`/clientes/${customer.id}/editar`} className="shrink-0">
+            <Button variant="ghost" size="sm">
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Editar</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

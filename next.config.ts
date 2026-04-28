@@ -40,7 +40,8 @@ const config: NextConfig = {
               "default-src 'self'",
               scriptSrc,
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob:",
+              // Mapa: tiles do OpenStreetMap + Vercel Blob (anexos)
+              "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.public.blob.vercel-storage.com",
               "font-src 'self' data:",
               "connect-src 'self' https://brasilapi.com.br https://viacep.com.br",
               "frame-ancestors 'none'",

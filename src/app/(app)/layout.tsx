@@ -17,7 +17,7 @@ export default async function AppLayout({
     <div className="flex min-h-screen bg-[var(--color-bg)]">
       <Sidebar userName={user.name} role={user.role} followUpCount={followUpCount} />
       <div className="relative z-10 flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar userName={user.name} role={user.role} />
         <main className="flex-1 px-3 py-3 pb-24 md:px-8 md:py-8 md:pb-8">{children}</main>
       </div>
       <CommandPalette role={user.role} />

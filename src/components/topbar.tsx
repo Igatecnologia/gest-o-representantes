@@ -6,8 +6,15 @@ import { Kbd } from "./ui";
 import { ThemeToggle } from "./theme-toggle";
 import { DensityToggle } from "./density-toggle";
 import { NotificationInbox } from "./notification-inbox";
+import { UserMenu } from "./user-menu";
 
-export function Topbar() {
+export function Topbar({
+  userName,
+  role,
+}: {
+  userName: string;
+  role: "admin" | "manager" | "rep";
+}) {
   const openPalette = () => {
     const event = new KeyboardEvent("keydown", {
       key: "k",
@@ -59,6 +66,7 @@ export function Topbar() {
           <DensityToggle className="hidden md:inline-flex" />
           <NotificationInbox />
           <ThemeToggle />
+          <UserMenu userName={userName} role={role} />
         </div>
       </div>
     </header>
