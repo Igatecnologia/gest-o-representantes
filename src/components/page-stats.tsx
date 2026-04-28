@@ -54,56 +54,100 @@ export type PageStat = {
 
 /**
  * Linha compacta de stats no topo de páginas index.
- * Substitui a lista vazia por um resumo visual leve.
  *
- * Versão "leve" do StatCard: sem sparkline, sem delta — só número e label.
+ * Mobile: scroll horizontal com snap (cabe muitas stats sem ocupar tela).
+ * Desktop: grid responsivo 3 ou 4 colunas.
  */
 export function PageStats({ stats }: { stats: PageStat[] }) {
   if (stats.length === 0) return null;
   return (
-    <div
-      className={cn(
-        "mb-6 grid grid-cols-2 gap-3 md:grid-cols-3",
-        stats.length >= 4 && "lg:grid-cols-4",
-      )}
-    >
-      {stats.map((s) => {
-        const t = TONE[s.tone ?? "primary"];
-        const Icon = s.icon;
-        return (
-          <div
-            key={s.label}
-            className={cn(
-              "flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] bg-[var(--color-surface)] px-4 py-3 transition-shadow hover:shadow-sm",
-              t.border,
-            )}
-          >
-            {Icon && (
-              <div
-                className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
-                  t.iconBg,
-                )}
-              >
-                <Icon className={cn("h-4 w-4", t.text)} />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                {s.label}
-              </div>
-              <div className="text-lg font-bold tabular-nums leading-tight text-[var(--color-text)]">
-                {s.value}
-              </div>
-              {s.hint && (
-                <div className="text-[10px] text-[var(--color-text-dim)]">
-                  {s.hint}
+    <div className="mb-4 md:mb-6">
+      {/* Mobile: scroll horizontal com snap */}
+      <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 md:hidden [&::-webkit-scrollbar]:hidden">
+        {stats.map((s) => {
+          const t = TONE[s.tone ?? "primary"];
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.label}
+              className={cn(
+                "flex min-w-[160px] shrink-0 snap-start items-center gap-2.5 rounded-[var(--radius)] border border-[var(--color-border)] border-l-[3px] bg-[var(--color-surface)] px-3 py-2.5",
+                t.border,
+              )}
+            >
+              {Icon && (
+                <div
+                  className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+                    t.iconBg,
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", t.text)} />
                 </div>
               )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+                  {s.label}
+                </div>
+                <div className="text-base font-bold tabular-nums leading-tight text-[var(--color-text)]">
+                  {s.value}
+                </div>
+                {s.hint && (
+                  <div className="truncate text-[9px] text-[var(--color-text-dim)]">
+                    {s.hint}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {/* Desktop: grid */}
+      <div
+        className={cn(
+          "hidden gap-3 md:grid md:grid-cols-3",
+          stats.length >= 4 && "lg:grid-cols-4",
+        )}
+      >
+        {stats.map((s) => {
+          const t = TONE[s.tone ?? "primary"];
+          const Icon = s.icon;
+          return (
+            <div
+              key={s.label}
+              className={cn(
+                "flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--color-border)] border-l-[3px] bg-[var(--color-surface)] px-4 py-3 transition-shadow hover:shadow-sm",
+                t.border,
+              )}
+            >
+              {Icon && (
+                <div
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-md",
+                    t.iconBg,
+                  )}
+                >
+                  <Icon className={cn("h-4 w-4", t.text)} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+                  {s.label}
+                </div>
+                <div className="text-lg font-bold tabular-nums leading-tight text-[var(--color-text)]">
+                  {s.value}
+                </div>
+                {s.hint && (
+                  <div className="text-[10px] text-[var(--color-text-dim)]">
+                    {s.hint}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

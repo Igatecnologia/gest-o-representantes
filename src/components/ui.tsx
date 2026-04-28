@@ -28,9 +28,9 @@ export const Button = React.forwardRef<
       "bg-[var(--color-danger)] text-white hover:opacity-90 shadow-sm",
   };
   const sizes: Record<ButtonSize, string> = {
-    sm: "h-10 px-3 text-xs",
-    md: "h-11 px-4 text-sm",
-    lg: "h-12 px-5 text-sm",
+    sm: "h-9 px-2.5 text-xs md:h-10 md:px-3",
+    md: "h-10 px-3 text-sm md:h-11 md:px-4",
+    lg: "h-11 px-4 text-sm md:h-12 md:px-5",
   };
   return (
     <button
@@ -129,7 +129,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5",
+        "rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:p-5",
         className
       )}
       {...props}
@@ -151,21 +151,27 @@ export function PageHeader({
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="mb-8 flex items-end justify-between gap-4">
-      <div className="flex items-start gap-3">
+    <div className="mb-4 flex items-end justify-between gap-3 md:mb-8 md:gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 md:items-start md:gap-3">
         {Icon && (
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-primary)]/10">
-            <Icon className="h-5 w-5 text-[var(--color-primary)]" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-primary)]/10 md:h-9 md:w-9">
+            <Icon className="h-4 w-4 text-[var(--color-primary)] md:h-5 md:w-5" />
           </div>
         )}
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold tracking-tight md:text-2xl">
+            {title}
+          </h1>
           {description && (
-            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{description}</p>
+            <p className="mt-0.5 truncate text-[11px] text-[var(--color-text-muted)] md:mt-1 md:text-sm">
+              {description}
+            </p>
           )}
         </div>
       </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex shrink-0 gap-1.5 md:gap-2">{actions}</div>
+      )}
     </div>
   );
 }
@@ -506,11 +512,11 @@ export function StatusFilter({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden">
       <button
         onClick={() => onChange("")}
         className={cn(
-          "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+          "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
           !value
             ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
             : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
@@ -523,7 +529,7 @@ export function StatusFilter({
           key={o.id}
           onClick={() => onChange(o.id === value ? "" : o.id)}
           className={cn(
-            "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+            "shrink-0 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors",
             value === o.id
               ? "border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
               : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
