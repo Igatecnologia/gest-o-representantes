@@ -171,6 +171,34 @@ export async function moveDealAction({
     })
     .where(whereClause);
 
+  // Push pro rep dono do deal quando vai pra "won" — celebrar a vitória 🎉
+  if (toStage === "won") {
+    const [d] = await db
+      .select({
+        title: schema.deals.title,
+        value: schema.deals.value,
+        repUserId: schema.representatives.userId,
+      })
+      .from(schema.deals)
+      .leftJoin(
+        schema.representatives,
+        eq(schema.representatives.id, schema.deals.representativeId),
+      )
+      .where(eq(schema.deals.id, dealId))
+      .limit(1);
+
+    if (d?.repUserId) {
+      const { sendPushToUser } = await import("@/lib/push");
+      const { brl } = await import("@/lib/utils");
+      sendPushToUser(d.repUserId, {
+        title: "🎉 Negócio fechado!",
+        body: `${d.title} — ${brl(d.value)}`,
+        url: `/pipeline/${dealId}/editar`,
+        tag: `deal-won-${dealId}`,
+      }).catch((err) => console.error("[moveDeal] push failed", err));
+    }
+  }
+
   revalidatePath("/pipeline");
   return { ok: true };
 }

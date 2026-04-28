@@ -2,13 +2,21 @@
 
 import { Card } from "@/components/ui";
 import { DensityToggle } from "@/components/density-toggle";
+import { PushSubscribeButton } from "@/components/push-subscribe-button";
 import {
   useCustomerCardFields,
   useDealCardFields,
   type CustomerCardField,
   type DealCardField,
 } from "@/lib/use-card-fields";
-import { Building2, Kanban, Settings2, Maximize2, Sparkles } from "lucide-react";
+import {
+  Building2,
+  Kanban,
+  Settings2,
+  Maximize2,
+  Sparkles,
+  Bell,
+} from "lucide-react";
 
 const CUSTOMER_FIELD_OPTIONS: { id: CustomerCardField; label: string; hint: string }[] = [
   { id: "phone", label: "Telefone", hint: "Mostra o celular abaixo do nome" },
@@ -45,6 +53,19 @@ export function AppearanceForm() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {/* Notificações push */}
+      <Card>
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+          <Bell className="h-4 w-4 text-[var(--color-primary)]" />
+          Notificações push
+        </h2>
+        <p className="mb-4 text-xs text-[var(--color-text-muted)]">
+          Receba alertas mesmo com o app fechado: retornos do dia, deals
+          fechados, comissões pagas. Funciona neste navegador/device.
+        </p>
+        <PushSubscribeButton />
+      </Card>
+
       {/* Densidade */}
       <Card>
         <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold">
