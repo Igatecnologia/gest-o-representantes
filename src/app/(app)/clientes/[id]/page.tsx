@@ -34,6 +34,7 @@ import { AttachmentList } from "@/components/attachment-list";
 import { getAttachments } from "@/lib/actions/attachments";
 import { CheckInButton } from "@/components/check-in-button";
 import { getVisitsForCustomer } from "@/lib/actions/visits";
+import { WhatsAppButton } from "@/components/whatsapp-button";
 import { Paperclip } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -160,6 +161,10 @@ export default async function CustomerPage({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <WhatsAppButton
+              phone={customer.phone}
+              customerName={customer.name}
+            />
             <Link href={`/clientes/${customer.id}/editar`}>
               <Button variant="secondary" size="sm">
                 <Pencil className="h-3.5 w-3.5" />

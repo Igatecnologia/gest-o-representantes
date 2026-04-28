@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { whatsappUrl } from "@/lib/utils";
 import { deleteCustomerAction } from "@/lib/actions/customers";
+import { useCustomerCardFields } from "@/lib/use-card-fields";
 
 type CustomerRow = {
   id: string;
@@ -62,6 +63,7 @@ export function CustomerList({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [cardFields] = useCustomerCardFields();
 
   function navigate(newPage: number, newSearch?: string) {
     const s = newSearch ?? search;
@@ -148,7 +150,7 @@ export function CustomerList({
                             {c.tradeName}
                           </div>
                         )}
-                        {c.document && (
+                        {cardFields.has("document") && c.document && (
                           <div className="mt-0.5 font-mono text-[10px] text-[var(--color-text-dim)]">
                             {c.document}
                           </div>
@@ -158,26 +160,31 @@ export function CustomerList({
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
-                      {c.city && (
+                      {cardFields.has("city") && c.city && (
                         <span className="inline-flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
                           {c.city}
                           {c.state ? `/${c.state}` : ""}
                         </span>
                       )}
-                      {c.phone && (
+                      {cardFields.has("phone") && c.phone && (
                         <span className="inline-flex items-center gap-1">
                           <Phone className="h-3 w-3" />
                           {c.phone}
                         </span>
                       )}
-                      {isAdmin && c.repName && (
+                      {cardFields.has("email") && c.email && (
+                        <span className="inline-flex items-center gap-1 truncate max-w-[180px]">
+                          {c.email}
+                        </span>
+                      )}
+                      {cardFields.has("rep") && isAdmin && c.repName && (
                         <span className="inline-flex items-center gap-1">
                           <Avatar name={c.repName} size="sm" />
                           {c.repName}
                         </span>
                       )}
-                      {isAdmin && !c.repName && (
+                      {cardFields.has("rep") && isAdmin && !c.repName && (
                         <Badge tone="warning">sem dono</Badge>
                       )}
                     </div>
