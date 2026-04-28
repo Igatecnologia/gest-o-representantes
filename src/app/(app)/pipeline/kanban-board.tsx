@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { brl, cn, dateShort } from "@/lib/utils";
 import { Avatar, Badge, SearchInput, Select } from "@/components/ui";
 import { moveDealAction } from "@/lib/actions/deals";
+import { useDealCardFields } from "@/lib/use-card-fields";
 import type { DealStage } from "@/lib/db/schema";
 import {
   Calendar,
@@ -438,6 +439,7 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: deal.id,
   });
+  const [cardFields] = useDealCardFields();
 
   const style = transform
     ? { transform: CSS.Translate.toString(transform) }
@@ -476,46 +478,55 @@ function KanbanCard({ deal, dragging = false }: { deal: DealRow; dragging?: bool
         {deal.customerName ?? "-"}
       </div>
 
-      {/* Dias no stage + expected close */}
-      <div className="mb-2 flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
-            deal.isStale
-              ? "bg-amber-500/15 text-amber-600"
-              : "bg-[var(--color-surface-3)]/70",
+      {/* Dias no stage + expected close — toggláveis */}
+      {(cardFields.has("daysInStage") ||
+        (cardFields.has("expectedDate") && deal.expectedCloseDate)) && (
+        <div className="mb-2 flex items-center gap-2 text-[10px] text-[var(--color-text-muted)]">
+          {cardFields.has("daysInStage") && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 font-medium",
+                deal.isStale
+                  ? "bg-amber-500/15 text-amber-600"
+                  : "bg-[var(--color-surface-3)]/70",
+              )}
+              title="Dias desde criação"
+            >
+              <Clock className="h-2.5 w-2.5" />
+              {deal.daysInStage}d
+            </span>
           )}
-          title="Dias desde criação"
-        >
-          <Clock className="h-2.5 w-2.5" />
-          {deal.daysInStage}d
-        </span>
-        {deal.expectedCloseDate && (
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-2.5 w-2.5" />
-            {dateShort(deal.expectedCloseDate)}
-          </span>
-        )}
-      </div>
+          {cardFields.has("expectedDate") && deal.expectedCloseDate && (
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="h-2.5 w-2.5" />
+              {dateShort(deal.expectedCloseDate)}
+            </span>
+          )}
+        </div>
+      )}
 
-      <div className="flex items-center justify-between">
-        {deal.repName && (
+      {cardFields.has("rep") && deal.repName && (
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Avatar name={deal.repName} size="sm" />
             <span className="text-[11px] text-[var(--color-text-muted)]">
               {deal.repName.split(" ")[0]}
             </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mt-2 flex items-center gap-2">
-        <div className="flex-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
-          <div
-            className="h-full rounded-full bg-gradient-brand"
-            style={{ width: `${deal.probability}%` }}
-          />
-        </div>
+        {cardFields.has("probability") && (
+          <div className="flex-1 h-1 overflow-hidden rounded-full bg-[var(--color-surface-3)]">
+            <div
+              className="h-full rounded-full bg-gradient-brand"
+              style={{ width: `${deal.probability}%` }}
+              title={`${deal.probability}% probabilidade`}
+            />
+          </div>
+        )}
+        {!cardFields.has("probability") && <div className="flex-1" />}
         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {deal.productId && deal.stage !== "won" && deal.stage !== "lost" && (
             <Link
