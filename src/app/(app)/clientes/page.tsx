@@ -113,22 +113,25 @@ export default async function CustomersPage({
         icon={Building2}
         actions={
           <>
-            <Link href="/clientes/mapa">
+            {/* Desktop only — secundárias */}
+            <Link href="/clientes/mapa" className="hidden md:inline-block">
               <Button variant="secondary">
                 <Map className="h-4 w-4" />
                 Mapa
               </Button>
             </Link>
-            <Link href="/clientes/importar">
+            <Link href="/clientes/importar" className="hidden md:inline-block">
               <Button variant="ghost">
                 <Plus className="h-4 w-4" />
                 Importar CSV
               </Button>
             </Link>
+            {/* Sempre visível */}
             <Link href="/clientes/novo">
               <Button>
                 <Plus className="h-4 w-4" />
-                Novo cliente
+                <span className="hidden sm:inline">Novo cliente</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
             </Link>
           </>

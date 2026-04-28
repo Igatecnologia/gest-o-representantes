@@ -13,6 +13,7 @@ import {
   MessageSquare,
   ChevronRight,
 } from "lucide-react";
+import { SwipeableCard } from "@/components/swipeable-card";
 import {
   Avatar,
   Badge,
@@ -94,9 +95,9 @@ export function CustomerList({
     setDeleting(false);
   }
 
-  function openWhatsApp(c: CustomerRow, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
+  function openWhatsApp(c: CustomerRow, e?: React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
     const firstName = c.name.split(" ")[0];
     const message = `Olá ${firstName}! Tudo bem? Estou entrando em contato pra conversar sobre nossa solução.`;
     window.open(whatsappUrl(c.phone, message), "_blank", "noopener,noreferrer");
@@ -127,25 +128,58 @@ export function CustomerList({
         />
       ) : (
         <>
-          {/* Mobile: cards */}
-          <div className="space-y-3 md:hidden">
+          {/* Mobile: cards limpos com swipe gestures */}
+          <div className="space-y-2 md:hidden">
             {customers.map((c) => {
               const hasPhone = !!c.phone;
+              const swipeRight: Parameters<typeof SwipeableCard>[0]["rightActions"] = [
+                {
+                  label: "Excluir",
+                  icon: Trash2,
+                  color: "bg-[var(--color-danger)]",
+                  onAction: () => setDeleteId(c.id),
+                },
+              ];
+              const swipeLeft: Parameters<typeof SwipeableCard>[0]["leftActions"] = hasPhone
+                ? [
+                    {
+                      label: "WhatsApp",
+                      icon: MessageSquare,
+                      color: "bg-[#25D366]",
+                      onAction: () => openWhatsApp(c),
+                    },
+                    {
+                      label: "Ligar",
+                      icon: Phone,
+                      color: "bg-[var(--color-primary)]",
+                      onAction: () => {
+                        window.location.href = `tel:${c.phone}`;
+                      },
+                    },
+                  ]
+                : [];
+
               return (
-                <div
+                <SwipeableCard
                   key={c.id}
-                  className="group relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] transition-all active:scale-[0.99]"
+                  rightActions={swipeRight}
+                  leftActions={swipeLeft}
+                  className="rounded-[var(--radius-lg)]"
                 >
-                  {/* Topbar gradient */}
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]" />
-                  <Link href={`/clientes/${c.id}`} className="block px-4 pt-4">
-                    <div className="flex items-start gap-3">
+                  <Link
+                    href={`/clientes/${c.id}`}
+                    className="relative block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 active:scale-[0.99]"
+                  >
+                    {/* Topbar gradient */}
+                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]" />
+
+                    <div className="flex items-start gap-3 pt-1">
                       <Avatar name={c.name} size="md" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-bold text-[var(--color-text)]">
                           {c.name}
                         </div>
-                        {c.tradeName && (
+                        {c.tradeName && c.tradeName !== c.name && (
                           <div className="truncate text-xs text-[var(--color-text-muted)]">
                             {c.tradeName}
                           </div>
@@ -155,78 +189,44 @@ export function CustomerList({
                             {c.document}
                           </div>
                         )}
+
+                        {/* Info compacta */}
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
+                          {cardFields.has("city") && c.city && (
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {c.city}
+                              {c.state ? `/${c.state}` : ""}
+                            </span>
+                          )}
+                          {cardFields.has("phone") && c.phone && (
+                            <span className="inline-flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              {c.phone}
+                            </span>
+                          )}
+                          {cardFields.has("rep") && isAdmin && c.repName && (
+                            <span className="inline-flex items-center gap-1">
+                              <Avatar name={c.repName} size="sm" />
+                              {c.repName}
+                            </span>
+                          )}
+                          {cardFields.has("rep") && isAdmin && !c.repName && (
+                            <Badge tone="warning">sem dono</Badge>
+                          )}
+                        </div>
                       </div>
                       <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-dim)]" />
                     </div>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
-                      {cardFields.has("city") && c.city && (
-                        <span className="inline-flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {c.city}
-                          {c.state ? `/${c.state}` : ""}
-                        </span>
-                      )}
-                      {cardFields.has("phone") && c.phone && (
-                        <span className="inline-flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {c.phone}
-                        </span>
-                      )}
-                      {cardFields.has("email") && c.email && (
-                        <span className="inline-flex items-center gap-1 truncate max-w-[180px]">
-                          {c.email}
-                        </span>
-                      )}
-                      {cardFields.has("rep") && isAdmin && c.repName && (
-                        <span className="inline-flex items-center gap-1">
-                          <Avatar name={c.repName} size="sm" />
-                          {c.repName}
-                        </span>
-                      )}
-                      {cardFields.has("rep") && isAdmin && !c.repName && (
-                        <Badge tone="warning">sem dono</Badge>
-                      )}
-                    </div>
                   </Link>
-
-                  {/* Ações no rodapé */}
-                  <div className="mt-3 flex items-stretch gap-1 border-t border-[var(--color-border)] p-2">
-                    <button
-                      type="button"
-                      onClick={(e) => openWhatsApp(c, e)}
-                      disabled={!hasPhone}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[#25D366]/10 px-2 py-2 text-xs font-semibold text-[#25D366] transition-colors active:bg-[#25D366]/20 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      WhatsApp
-                    </button>
-                    {c.phone && (
-                      <a
-                        href={`tel:${c.phone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center justify-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-surface-2)] px-3 py-2 text-xs font-medium text-[var(--color-text-muted)] active:bg-[var(--color-surface-3)]"
-                      >
-                        <Phone className="h-3.5 w-3.5" />
-                      </a>
-                    )}
-                    <Link
-                      href={`/clientes/${c.id}`}
-                      className="inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-surface-2)] px-3 py-2 text-xs font-medium text-[var(--color-text-muted)] active:bg-[var(--color-surface-3)]"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteId(c.id)}
-                      className="inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--color-danger)]/10 px-3 py-2 text-xs font-medium text-[var(--color-danger)] active:bg-[var(--color-danger)]/20"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
+                </SwipeableCard>
               );
             })}
+
+            {/* Hint visual de swipe */}
+            <p className="mt-3 text-center text-[10px] text-[var(--color-text-dim)]">
+              💡 Arraste o card pra esquerda pra excluir, pra direita pro WhatsApp
+            </p>
           </div>
 
           {/* Desktop: table */}
