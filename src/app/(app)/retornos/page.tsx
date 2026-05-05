@@ -7,7 +7,7 @@ import { FollowUpList } from "./client";
 export const dynamic = "force-dynamic";
 
 type Filter = "today" | "week" | "month" | "overdue" | "all";
-type StatusFilter = "pending" | "done" | "skipped" | "all";
+type StatusFilter = "pending" | "done" | "skipped" | "cancelled" | "all";
 
 export default async function RetornosPage({
   searchParams,

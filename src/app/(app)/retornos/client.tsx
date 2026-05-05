@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Badge, Button, Card, EmptyState, Input } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Input, Select, Textarea } from "@/components/ui";
 import { FadeUp, StaggerContainer } from "@/components/motion";
 import { SwipeableCard } from "@/components/swipeable-card";
 import {
@@ -25,12 +25,17 @@ import {
   ListChecks,
   X,
   Sparkles,
+  CalendarPlus,
+  Ban,
+  XCircle,
 } from "lucide-react";
 import { dateShort, dateLong, whatsappUrl } from "@/lib/utils";
 import {
   completeFollowUpAction,
   skipFollowUpAction,
   deleteFollowUpAction,
+  rescheduleFollowUpAction,
+  cancelFollowUpAction,
 } from "@/lib/actions/follow-ups";
 import { FOLLOWUP_TYPES } from "@/lib/db/schema";
 
@@ -60,7 +65,9 @@ type Counts = {
 };
 
 type Filter = "today" | "week" | "month" | "overdue" | "all";
-type StatusFilter = "pending" | "done" | "skipped" | "all";
+type StatusFilter = "pending" | "done" | "skipped" | "cancelled" | "all";
+
+type ActionTab = "done" | "reschedule" | "cancel";
 
 const PERIOD_FILTERS: { id: Filter; label: string; icon: typeof Clock; tone: "default" | "brand" | "danger" | "info" }[] = [
   { id: "overdue", label: "Atrasados", icon: AlertTriangle, tone: "danger" },
@@ -81,12 +88,14 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente",
   done: "Feito",
   skipped: "Pulado",
+  cancelled: "Cancelado",
 };
 
-const STATUS_TONES: Record<string, "default" | "brand" | "success" | "warning" | "info"> = {
+const STATUS_TONES: Record<string, "default" | "brand" | "success" | "warning" | "info" | "danger"> = {
   pending: "brand",
   done: "success",
   skipped: "default",
+  cancelled: "danger",
 };
 
 const TYPE_HINTS: Record<string, string> = {
@@ -125,10 +134,76 @@ export function FollowUpList({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ActionTab>("done");
   const [resultText, setResultText] = useState("");
   const [rescheduleDate, setRescheduleDate] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [cancelReason, setCancelReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [fromInput, setFromInput] = useState(from);
   const [toInput, setToInput] = useState(to);
+
+  function openPanel(fu: FollowUpItem, tab: ActionTab) {
+    setExpandedId(fu.id);
+    setActiveTab(tab);
+    setResultText("");
+    setRescheduleDate("");
+    // Pré-popular o form de remarcar com os dados atuais
+    if (fu.scheduledDate) {
+      const d = new Date(fu.scheduledDate);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      setEditDate(`${yyyy}-${mm}-${dd}`);
+    } else {
+      setEditDate("");
+    }
+    setEditType(fu.type);
+    setEditNotes(fu.notes ?? "");
+    setCancelReason("");
+  }
+
+  function closePanel() {
+    setExpandedId(null);
+  }
+
+  async function handleReschedule(fuId: string) {
+    if (!editDate) {
+      toast.error("Informe a nova data.");
+      return;
+    }
+    setSubmitting(true);
+    const fd = new FormData();
+    fd.set("id", fuId);
+    fd.set("scheduledDate", editDate);
+    fd.set("type", editType);
+    fd.set("notes", editNotes);
+    const res = await rescheduleFollowUpAction(fd);
+    setSubmitting(false);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Retorno remarcado");
+    closePanel();
+  }
+
+  async function handleCancel(fuId: string) {
+    setSubmitting(true);
+    const fd = new FormData();
+    fd.set("id", fuId);
+    fd.set("reason", cancelReason);
+    const res = await cancelFollowUpAction(fd);
+    setSubmitting(false);
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Retorno cancelado");
+    closePanel();
+  }
 
   const isHistory = status !== "pending";
 
@@ -283,6 +358,7 @@ export function FollowUpList({
             {([
               { id: "all", label: "Todos" },
               { id: "done", label: "Feitos" },
+              { id: "cancelled", label: "Cancelados" },
               { id: "skipped", label: "Pulados" },
               { id: "pending", label: "Pendentes" },
             ] as const).map((s) => {
@@ -431,6 +507,8 @@ export function FollowUpList({
                         ? "bg-gradient-to-r from-[var(--color-success)] to-emerald-400"
                         : fu.status === "skipped"
                         ? "bg-gradient-to-r from-zinc-500 to-zinc-400"
+                        : fu.status === "cancelled"
+                        ? "bg-gradient-to-r from-red-500 to-rose-400"
                         : "bg-gradient-to-r from-[var(--color-primary)] to-violet-400"
                     }`}
                   />
@@ -496,12 +574,28 @@ export function FollowUpList({
                     </div>
                   )}
 
-                  {/* O que aconteceu (se já foi feito) */}
+                  {/* O que aconteceu / motivo do cancelamento (se já foi feito/cancelado) */}
                   {!isPending && fu.result && (
-                    <div className="mt-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-success)]/40 bg-[var(--color-success)]/5 px-3 py-2">
-                      <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-success)]">
-                        <CheckCircle2 className="h-2.5 w-2.5" />
-                        O que aconteceu
+                    <div
+                      className={`mt-3 rounded-[var(--radius-sm)] border-l-2 px-3 py-2 ${
+                        fu.status === "cancelled"
+                          ? "border-[var(--color-danger)]/40 bg-[var(--color-danger)]/5"
+                          : "border-[var(--color-success)]/40 bg-[var(--color-success)]/5"
+                      }`}
+                    >
+                      <div
+                        className={`mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide ${
+                          fu.status === "cancelled"
+                            ? "text-[var(--color-danger)]"
+                            : "text-[var(--color-success)]"
+                        }`}
+                      >
+                        {fu.status === "cancelled" ? (
+                          <Ban className="h-2.5 w-2.5" />
+                        ) : (
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                        )}
+                        {fu.status === "cancelled" ? "Motivo do cancelamento" : "O que aconteceu"}
                       </div>
                       <p className="text-xs leading-relaxed text-[var(--color-text)]">
                         {fu.result}
@@ -541,54 +635,99 @@ export function FollowUpList({
 
                   {/* Ações — só pra retornos pendentes */}
                   {isPending && (
-                    <div className="mt-4 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openWhatsApp(fu)}
-                        disabled={!hasPhone}
-                        title={hasPhone ? "Abrir WhatsApp com mensagem" : "Cliente sem telefone cadastrado"}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[#25D366]/10 px-3 py-2 text-xs font-semibold text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />
-                        WhatsApp
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExpandedId(isExpanded ? null : fu.id);
-                          setResultText("");
-                          setRescheduleDate("");
-                        }}
-                        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-success)]/10 px-2.5 py-2 text-xs font-semibold text-[var(--color-success)] transition-colors hover:bg-[var(--color-success)]/20"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {isExpanded ? "Fechar" : "Feito"}
-                      </button>
-                      <form action={skipFollowUpAction}>
-                        <input type="hidden" name="id" value={fu.id} />
+                    <div className="mt-4 space-y-2">
+                      {/* Linha 1 — primárias */}
+                      <div className="flex gap-2">
                         <button
-                          type="submit"
-                          title="Pular retorno"
-                          className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-surface-2)] px-2.5 py-2 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)]"
+                          type="button"
+                          onClick={() => openWhatsApp(fu)}
+                          disabled={!hasPhone}
+                          title={hasPhone ? "Abrir WhatsApp com mensagem" : "Cliente sem telefone cadastrado"}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-[#25D366]/10 px-3 py-2 text-xs font-semibold text-[#25D366] transition-all hover:bg-[#25D366]/20 disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                          <SkipForward className="h-3.5 w-3.5" />
+                          <MessageSquare className="h-3.5 w-3.5" />
+                          WhatsApp
                         </button>
-                      </form>
-                      <form action={deleteFollowUpAction}>
-                        <input type="hidden" name="id" value={fu.id} />
                         <button
-                          type="submit"
-                          title="Excluir retorno"
-                          className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-danger)]/10 px-2.5 py-2 text-xs font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/20"
+                          type="button"
+                          onClick={() =>
+                            isExpanded && activeTab === "done"
+                              ? closePanel()
+                              : openPanel(fu, "done")
+                          }
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-xs font-semibold transition-colors ${
+                            isExpanded && activeTab === "done"
+                              ? "bg-[var(--color-success)] text-white"
+                              : "bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
+                          }`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {isExpanded && activeTab === "done" ? "Fechar" : "Concluir"}
                         </button>
-                      </form>
+                      </div>
+
+                      {/* Linha 2 — secundárias (remarcar / cancelar / pular / excluir) */}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            isExpanded && activeTab === "reschedule"
+                              ? closePanel()
+                              : openPanel(fu, "reschedule")
+                          }
+                          title="Remarcar para outra data"
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-xs font-semibold transition-colors ${
+                            isExpanded && activeTab === "reschedule"
+                              ? "bg-[var(--color-primary)] text-white"
+                              : "bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20"
+                          }`}
+                        >
+                          <CalendarPlus className="h-3.5 w-3.5" />
+                          Remarcar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            isExpanded && activeTab === "cancel"
+                              ? closePanel()
+                              : openPanel(fu, "cancel")
+                          }
+                          title="Cancelar este retorno"
+                          className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 py-2 text-xs font-semibold transition-colors ${
+                            isExpanded && activeTab === "cancel"
+                              ? "bg-[var(--color-danger)] text-white"
+                              : "bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20"
+                          }`}
+                        >
+                          <Ban className="h-3.5 w-3.5" />
+                          Cancelar
+                        </button>
+                        <form action={skipFollowUpAction}>
+                          <input type="hidden" name="id" value={fu.id} />
+                          <button
+                            type="submit"
+                            title="Pular retorno (sem fazer)"
+                            className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-surface-2)] px-2.5 py-2 text-xs font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text)]"
+                          >
+                            <SkipForward className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
+                        <form action={deleteFollowUpAction}>
+                          <input type="hidden" name="id" value={fu.id} />
+                          <button
+                            type="submit"
+                            title="Excluir retorno"
+                            className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--color-danger)]/10 px-2.5 py-2 text-xs font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/20"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   )}
 
-                  {/* Form expandido — confirmar retorno */}
-                  {isPending && isExpanded && (
+                  {/* Painel expandido — Concluir / Remarcar / Cancelar */}
+                  {isPending && isExpanded && activeTab === "done" && (
                     <form
                       action={completeFollowUpAction}
                       className="mt-3 space-y-2 border-t border-[var(--color-border)] pt-3"
@@ -607,7 +746,7 @@ export function FollowUpList({
                       </div>
                       <div>
                         <label className="text-[10px] font-medium text-[var(--color-text-muted)] mb-1 block">
-                          Reagendar? (opcional)
+                          Já agendar próximo retorno? (opcional)
                         </label>
                         <Input
                           name="rescheduleDate"
@@ -621,6 +760,92 @@ export function FollowUpList({
                         Confirmar retorno
                       </Button>
                     </form>
+                  )}
+
+                  {isPending && isExpanded && activeTab === "reschedule" && (
+                    <div className="mt-3 space-y-2 border-t border-[var(--color-border)] pt-3">
+                      <div>
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)] mb-1 block">
+                          Nova data
+                        </label>
+                        <Input
+                          type="date"
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)] mb-1 block">
+                          Tipo
+                        </label>
+                        <Select
+                          value={editType}
+                          onChange={(e) => setEditType(e.target.value)}
+                        >
+                          {FOLLOWUP_TYPES.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)] mb-1 block">
+                          Motivo / observação (opcional)
+                        </label>
+                        <Textarea
+                          rows={2}
+                          placeholder="Ex: Cliente pediu pra remarcar a conversa."
+                          value={editNotes}
+                          onChange={(e) => setEditNotes(e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="w-full"
+                        disabled={submitting || !editDate}
+                        onClick={() => handleReschedule(fu.id)}
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                        {submitting ? "Salvando..." : "Salvar nova data"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {isPending && isExpanded && activeTab === "cancel" && (
+                    <div className="mt-3 space-y-2 border-t border-[var(--color-border)] pt-3">
+                      <div className="flex items-start gap-2 rounded-[var(--radius-sm)] border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 p-2.5">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-[var(--color-danger)]" />
+                        <p className="text-[11px] leading-relaxed text-[var(--color-text)]">
+                          Cancelar marca o retorno como{" "}
+                          <strong>não realizado</strong>. Ele aparecerá no
+                          histórico e não pode ser reagendado.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)] mb-1 block">
+                          Motivo do cancelamento (opcional)
+                        </label>
+                        <Textarea
+                          rows={2}
+                          placeholder="Ex: Cliente desistiu / não tem mais interesse."
+                          value={cancelReason}
+                          onChange={(e) => setCancelReason(e.target.value)}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        className="w-full"
+                        disabled={submitting}
+                        onClick={() => handleCancel(fu.id)}
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        {submitting ? "Cancelando..." : "Confirmar cancelamento"}
+                      </Button>
+                    </div>
                   )}
                 </Card>
                 </SwipeableCard>

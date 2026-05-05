@@ -90,6 +90,99 @@ export async function createFollowUpAction(input: {
   }
 }
 
+const rescheduleSchema = z.object({
+  id: z.string().min(1),
+  scheduledDate: z.string().min(1, "Informe a nova data."),
+  type: z.enum(["proposal_sent", "negotiation", "post_sale", "general"]).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export async function rescheduleFollowUpAction(formData: FormData) {
+  const { isAdmin, repId } = await requireScope();
+
+  const parsed = rescheduleSchema.safeParse({
+    id: formData.get("id"),
+    scheduledDate: formData.get("scheduledDate"),
+    type: formData.get("type") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const newDate = new Date(parsed.data.scheduledDate);
+  if (Number.isNaN(newDate.getTime())) {
+    return { error: "Data inválida." };
+  }
+
+  const where = isAdmin
+    ? eq(schema.followUps.id, parsed.data.id)
+    : and(
+        eq(schema.followUps.id, parsed.data.id),
+        eq(schema.followUps.representativeId, repId),
+      );
+
+  // Só permite remarcar retornos pendentes — feitos/cancelados não podem ser alterados
+  const [existing] = await db
+    .select({ id: schema.followUps.id, status: schema.followUps.status })
+    .from(schema.followUps)
+    .where(where)
+    .limit(1);
+
+  if (!existing) return { error: "Retorno não encontrado." };
+  if (existing.status !== "pending") {
+    return { error: "Apenas retornos pendentes podem ser remarcados." };
+  }
+
+  await db
+    .update(schema.followUps)
+    .set({
+      scheduledDate: newDate,
+      ...(parsed.data.type ? { type: parsed.data.type } : {}),
+      ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes || null } : {}),
+    })
+    .where(where);
+
+  revalidatePath("/retornos");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+const cancelSchema = z.object({
+  id: z.string().min(1),
+  reason: z.string().max(500).optional(),
+});
+
+export async function cancelFollowUpAction(formData: FormData) {
+  const { isAdmin, repId } = await requireScope();
+
+  const parsed = cancelSchema.safeParse({
+    id: formData.get("id"),
+    reason: formData.get("reason") || undefined,
+  });
+  if (!parsed.success) return { error: "Dados inválidos." };
+
+  const where = isAdmin
+    ? eq(schema.followUps.id, parsed.data.id)
+    : and(
+        eq(schema.followUps.id, parsed.data.id),
+        eq(schema.followUps.representativeId, repId),
+      );
+
+  await db
+    .update(schema.followUps)
+    .set({
+      status: "cancelled",
+      result: parsed.data.reason?.trim() || null,
+      completedAt: new Date(),
+    })
+    .where(where);
+
+  revalidatePath("/retornos");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function completeFollowUpAction(formData: FormData) {
   const { isAdmin, repId } = await requireScope();
   const id = formData.get("id");
@@ -174,7 +267,7 @@ export async function deleteFollowUpAction(formData: FormData) {
 }
 
 type FollowUpFilter = "today" | "week" | "month" | "overdue" | "all";
-type FollowUpStatus = "pending" | "done" | "skipped" | "all";
+type FollowUpStatus = "pending" | "done" | "skipped" | "cancelled" | "all";
 
 export async function getFollowUps(
   filter: FollowUpFilter = "today",
